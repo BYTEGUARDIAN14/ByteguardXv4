@@ -164,7 +164,7 @@ temp/
 byteguardx_report_*.html
 /tmp/byteguardx_uploads/
 scan_results/
-reports/
+# Note: reports/ directory should be tracked for templates and core functionality
 
 # Test files
 test_files/
