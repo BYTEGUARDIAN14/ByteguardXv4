@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""
+ByteGuardX Pre-commit Hook
+Automatically scans staged files for security vulnerabilities before commit
+Blocks commits with critical or high severity findings
+"""
+
+import sys
+import os
+import subprocess
+import json
+import tempfile
+from pathlib import Path
+
+# Add ByteGuardX to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from byteguardx.core.file_processor import FileProcessor
+    from byteguardx.scanners.secret_scanner import SecretScanner
+    from byteguardx.scanners.dependency_scanner import DependencyScanner
+    from byteguardx.scanners.ai_pattern_scanner import AIPatternScanner
+except ImportError as e:
+    print(f"Error: Could not import ByteGuardX modules: {e}")
+    print("Make sure ByteGuardX is properly installed.")
+    sys.exit(1)
+
+class PreCommitScanner:
+    """Pre-commit security scanner"""
+    
+    def __init__(self):
+        self.file_processor = FileProcessor()
+        self.secret_scanner = SecretScanner()
+        self.dependency_scanner = DependencyScanner()
+        self.ai_scanner = AIPatternScanner()
+        
+        # Configuration
+        self.block_on_critical = True
+        self.block_on_high = True
+        self.block_on_medium = False
+        self.max_findings_to_show = 10
+    
+    def get_staged_files(self):
+        """Get list of staged files"""
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACM'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            files = []
+            for file_path in result.stdout.strip().split('\n'):
+                if file_path and os.path.exists(file_path):
+                    files.append(file_path)
+            
+            return files
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting staged files: {e}")
+            return []
+    
+    def get_file_content(self, file_path):
+        """Get staged content of a file"""
+        try:
+            result = subprocess.run(
+                ['git', 'show', f':{file_path}'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result.stdout
+        except subprocess.CalledProcessError:
+            # File might be new, read from filesystem
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read()
+            except Exception:
+                return ""
+    
+    def scan_files(self, files):
+        """Scan staged files for vulnerabilities"""
+        all_findings = []
+        
+        for file_path in files:
+            # Skip binary files and certain extensions
+            if self._should_skip_file(file_path):
+                continue
+            
+            print(f"Scanning: {file_path}")
+            
+            try:
+                content = self.get_file_content(file_path)
+                if not content:
+                    continue
+                
+                # Process file
+                processed_file = self.file_processor.process_file(file_path, content)
+                if 'error' in processed_file:
+                    continue
+                
+                # Run scanners
+                findings = []
+                
+                # Secret scanner
+                secret_findings = self.secret_scanner.scan_content(
+                    content, file_path, processed_file.get('file_type', 'unknown')
+                )
+                findings.extend(secret_findings)
+                
+                # Dependency scanner (for package files)
+                if self._is_dependency_file(file_path):
+                    dep_findings = self.dependency_scanner.scan_content(
+                        content, file_path, processed_file.get('file_type', 'unknown')
+                    )
+                    findings.extend(dep_findings)
+                
+                # AI pattern scanner
+                ai_findings = self.ai_scanner.scan_content(
+                    content, file_path, processed_file.get('file_type', 'unknown')
+                )
+                findings.extend(ai_findings)
+                
+                # Add file path to findings
+                for finding in findings:
+                    finding['file_path'] = file_path
+                    all_findings.append(finding)
+                
+            except Exception as e:
+                print(f"Error scanning {file_path}: {e}")
+                continue
+        
+        return all_findings
+    
+    def should_block_commit(self, findings):
+        """Determine if commit should be blocked"""
+        critical_count = sum(1 for f in findings if f.get('severity') == 'critical')
+        high_count = sum(1 for f in findings if f.get('severity') == 'high')
+        medium_count = sum(1 for f in findings if f.get('severity') == 'medium')
+        
+        if self.block_on_critical and critical_count > 0:
+            return True, f"{critical_count} critical vulnerabilities found"
+        
+        if self.block_on_high and high_count > 0:
+            return True, f"{high_count} high severity vulnerabilities found"
+        
+        if self.block_on_medium and medium_count > 0:
+            return True, f"{medium_count} medium severity vulnerabilities found"
+        
+        return False, ""
+    
+    def format_findings(self, findings):
+        """Format findings for display"""
+        if not findings:
+            return "✅ No security issues found in staged files."
+        
+        # Group by severity
+        by_severity = {}
+        for finding in findings:
+            severity = finding.get('severity', 'unknown')
+            if severity not in by_severity:
+                by_severity[severity] = []
+            by_severity[severity].append(finding)
+        
+        output = []
+        output.append("🔍 ByteGuardX Security Scan Results:")
+        output.append("=" * 50)
+        
+        # Show summary
+        total = len(findings)
+        critical = len(by_severity.get('critical', []))
+        high = len(by_severity.get('high', []))
+        medium = len(by_severity.get('medium', []))
+        low = len(by_severity.get('low', []))
+        
+        output.append(f"Total findings: {total}")
+        output.append(f"🔴 Critical: {critical}")
+        output.append(f"🟠 High: {high}")
+        output.append(f"🟡 Medium: {medium}")
+        output.append(f"🔵 Low: {low}")
+        output.append("")
+        
+        # Show detailed findings (limited)
+        shown_count = 0
+        for severity in ['critical', 'high', 'medium', 'low']:
+            if severity in by_severity and shown_count < self.max_findings_to_show:
+                severity_emoji = {
+                    'critical': '🔴',
+                    'high': '🟠',
+                    'medium': '🟡',
+                    'low': '🔵'
+                }.get(severity, '⚪')
+                
+                output.append(f"{severity_emoji} {severity.upper()} FINDINGS:")
+                
+                for finding in by_severity[severity][:self.max_findings_to_show - shown_count]:
+                    file_path = finding.get('file_path', 'unknown')
+                    line_num = finding.get('line_number', 0)
+                    title = finding.get('title', 'Security Issue')
+                    vuln_type = finding.get('vulnerability_type', 'unknown')
+                    
+                    output.append(f"  📁 {file_path}:{line_num}")
+                    output.append(f"     {title} ({vuln_type})")
+                    
+                    description = finding.get('description', '')
+                    if description and len(description) < 100:
+                        output.append(f"     {description}")
+                    
+                    output.append("")
+                    shown_count += 1
+                    
+                    if shown_count >= self.max_findings_to_show:
+                        break
+        
+        if total > shown_count:
+            output.append(f"... and {total - shown_count} more findings")
+            output.append("Run 'python cli.py scan <directory>' for full results")
+        
+        return "\n".join(output)
+    
+    def _should_skip_file(self, file_path):
+        """Check if file should be skipped"""
+        skip_extensions = {
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico',
+            '.mp4', '.avi', '.mov', '.wmv', '.flv',
+            '.mp3', '.wav', '.flac', '.aac',
+            '.zip', '.tar', '.gz', '.rar', '.7z',
+            '.exe', '.dll', '.so', '.dylib',
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+            '.min.js', '.min.css'
+        }
+        
+        skip_dirs = {
+            'node_modules', '.git', '__pycache__', '.pytest_cache',
+            'venv', 'env', '.venv', '.env',
+            'dist', 'build', 'target', 'out'
+        }
+        
+        # Check extension
+        ext = Path(file_path).suffix.lower()
+        if ext in skip_extensions:
+            return True
+        
+        # Check if in skip directory
+        path_parts = Path(file_path).parts
+        if any(part in skip_dirs for part in path_parts):
+            return True
+        
+        # Check file size (skip very large files)
+        try:
+            if os.path.getsize(file_path) > 1024 * 1024:  # 1MB
+                return True
+        except OSError:
+            return True
+        
+        return False
+    
+    def _is_dependency_file(self, file_path):
+        """Check if file is a dependency file"""
+        dependency_files = {
+            'package.json', 'package-lock.json', 'yarn.lock',
+            'requirements.txt', 'Pipfile', 'Pipfile.lock', 'poetry.lock',
+            'Gemfile', 'Gemfile.lock',
+            'composer.json', 'composer.lock',
+            'pom.xml', 'build.gradle', 'build.gradle.kts',
+            'Cargo.toml', 'Cargo.lock',
+            'go.mod', 'go.sum'
+        }
+        
+        filename = Path(file_path).name
+        return filename in dependency_files
+
+def main():
+    """Main pre-commit hook function"""
+    print("🔍 ByteGuardX Pre-commit Security Scan")
+    print("=" * 40)
+    
+    scanner = PreCommitScanner()
+    
+    # Get staged files
+    staged_files = scanner.get_staged_files()
+    if not staged_files:
+        print("No staged files to scan.")
+        return 0
+    
+    print(f"Scanning {len(staged_files)} staged files...")
+    
+    # Scan files
+    findings = scanner.scan_files(staged_files)
+    
+    # Display results
+    print("\n" + scanner.format_findings(findings))
+    
+    # Check if commit should be blocked
+    should_block, reason = scanner.should_block_commit(findings)
+    
+    if should_block:
+        print("\n❌ COMMIT BLOCKED!")
+        print(f"Reason: {reason}")
+        print("\nPlease fix the security issues before committing.")
+        print("You can:")
+        print("1. Fix the issues manually")
+        print("2. Use 'python cli.py fix <file>' for AI-powered fixes")
+        print("3. Use 'git commit --no-verify' to bypass (not recommended)")
+        return 1
+    
+    if findings:
+        print("\n⚠️  Security issues found but commit allowed.")
+        print("Consider fixing these issues when possible.")
+    else:
+        print("\n✅ No security issues found. Commit allowed.")
+    
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

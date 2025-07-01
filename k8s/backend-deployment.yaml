@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: byteguardx-backend
+  namespace: byteguardx
+  labels:
+    app: byteguardx-backend
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: byteguardx-backend
+  template:
+    metadata:
+      labels:
+        app: byteguardx-backend
+        component: api
+    spec:
+      containers:
+      - name: byteguardx-backend
+        image: byteguardx/backend:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: byteguardx-secrets
+              key: secret-key
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: byteguardx-secrets
+              key: jwt-secret-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: byteguardx-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://byteguardx-redis:6379"
+        - name: ALLOWED_ORIGINS
+          value: "https://app.byteguardx.com,https://byteguardx.com"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: upload-storage
+          mountPath: /tmp/byteguardx_uploads
+        - name: data-storage
+          mountPath: /app/data
+      volumes:
+      - name: upload-storage
+        persistentVolumeClaim:
+          claimName: byteguardx-uploads-pvc
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: byteguardx-data-pvc
+      imagePullSecrets:
+      - name: byteguardx-registry-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: byteguardx-backend
+  namespace: byteguardx
+  labels:
+    app: byteguardx-backend
+spec:
+  selector:
+    app: byteguardx-backend
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: byteguardx-uploads-pvc
+  namespace: byteguardx
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: byteguardx-data-pvc
+  namespace: byteguardx
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd

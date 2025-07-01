@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: byteguardx-frontend
+  namespace: byteguardx
+  labels:
+    app: byteguardx-frontend
+    component: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: byteguardx-frontend
+  template:
+    metadata:
+      labels:
+        app: byteguardx-frontend
+        component: web
+    spec:
+      containers:
+      - name: byteguardx-frontend
+        image: byteguardx/frontend:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: VITE_API_URL
+          value: "https://api.byteguardx.com"
+        - name: VITE_APP_NAME
+          value: "ByteGuardX"
+        - name: VITE_APP_VERSION
+          value: "1.0.0"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: byteguardx-registry-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: byteguardx-frontend
+  namespace: byteguardx
+  labels:
+    app: byteguardx-frontend
+spec:
+  selector:
+    app: byteguardx-frontend
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: ClusterIP

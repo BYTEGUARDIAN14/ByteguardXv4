@@ -1,0 +1,65 @@
+# ByteGuardX Backend Dependencies
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-JWT-Extended==4.5.3
+Werkzeug==2.3.7
+
+# Database & ORM
+SQLAlchemy==2.0.23
+alembic==1.12.1
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+bcrypt==4.1.2
+
+# Security & Validation
+cryptography==41.0.7
+python-magic==0.4.27
+validators==0.22.0
+PyJWT==2.8.0
+
+# PDF Generation
+WeasyPrint==60.1
+Jinja2==3.1.2
+
+# Data Processing
+requests==2.31.0
+pyyaml==6.0.1
+jsonschema==4.19.2
+
+# Async & Performance
+aiofiles==23.2.1
+aiohttp==3.9.1
+psutil==5.9.6
+
+# CLI
+click==8.1.7
+colorama==0.4.6
+rich==13.6.0
+
+# Development
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+black==23.9.1
+flake8==6.1.0
+
+# ML and Analytics
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# Enterprise Features
+python-saml==1.15.0
+xmlsec==1.3.13
+docker==6.1.3
+
+# Additional Dependencies
+redis==4.6.0
+celery==5.3.4
+python-dotenv==1.0.0
+
+# Optional AI/ML (placeholder)
+# transformers==4.35.0
+# torch==2.1.0
+# onnxruntime==1.16.0

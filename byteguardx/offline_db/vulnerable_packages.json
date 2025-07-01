@@ -1,0 +1,251 @@
+{
+  "python": {
+    "django": [
+      {
+        "cve_id": "CVE-2023-31047",
+        "vulnerable_versions": ["<4.2.2", "<4.1.9", "<3.2.19"],
+        "severity": "high",
+        "description": "Django SQL injection vulnerability in Trunc(kind) and Extract(lookup_name) database functions",
+        "fixed_version": "4.2.2"
+      },
+      {
+        "cve_id": "CVE-2023-24580",
+        "vulnerable_versions": ["<4.1.7", "<4.0.10", "<3.2.18"],
+        "severity": "medium",
+        "description": "Django potential DoS via file uploads",
+        "fixed_version": "4.1.7"
+      }
+    ],
+    "requests": [
+      {
+        "cve_id": "CVE-2023-32681",
+        "vulnerable_versions": ["<2.31.0"],
+        "severity": "medium",
+        "description": "Requests proxy-authorization header leak on redirect",
+        "fixed_version": "2.31.0"
+      }
+    ],
+    "pillow": [
+      {
+        "cve_id": "CVE-2023-44271",
+        "vulnerable_versions": ["<10.0.1"],
+        "severity": "high",
+        "description": "Pillow arbitrary code execution via crafted image",
+        "fixed_version": "10.0.1"
+      },
+      {
+        "cve_id": "CVE-2023-50447",
+        "vulnerable_versions": ["<10.2.0"],
+        "severity": "medium",
+        "description": "Pillow arbitrary code execution via crafted font file",
+        "fixed_version": "10.2.0"
+      }
+    ],
+    "flask": [
+      {
+        "cve_id": "CVE-2023-30861",
+        "vulnerable_versions": ["<2.3.2", "<2.2.5"],
+        "severity": "high",
+        "description": "Flask cookie parsing vulnerability",
+        "fixed_version": "2.3.2"
+      }
+    ],
+    "jinja2": [
+      {
+        "cve_id": "CVE-2020-28493",
+        "vulnerable_versions": ["<2.11.3"],
+        "severity": "medium",
+        "description": "Jinja2 ReDoS vulnerability",
+        "fixed_version": "2.11.3"
+      }
+    ],
+    "pyyaml": [
+      {
+        "cve_id": "CVE-2020-14343",
+        "vulnerable_versions": ["<5.4"],
+        "severity": "critical",
+        "description": "PyYAML arbitrary code execution",
+        "fixed_version": "5.4"
+      }
+    ],
+    "cryptography": [
+      {
+        "cve_id": "CVE-2023-49083",
+        "vulnerable_versions": ["<41.0.8"],
+        "severity": "medium",
+        "description": "Cryptography NULL pointer dereference",
+        "fixed_version": "41.0.8"
+      }
+    ],
+    "urllib3": [
+      {
+        "cve_id": "CVE-2023-45803",
+        "vulnerable_versions": ["<1.26.18", ">=2.0.0,<2.0.7"],
+        "severity": "medium",
+        "description": "urllib3 request body leak on redirect",
+        "fixed_version": "1.26.18"
+      }
+    ]
+  },
+  "javascript": {
+    "lodash": [
+      {
+        "cve_id": "CVE-2021-23337",
+        "vulnerable_versions": ["<4.17.21"],
+        "severity": "high",
+        "description": "Lodash command injection vulnerability",
+        "fixed_version": "4.17.21"
+      },
+      {
+        "cve_id": "CVE-2020-8203",
+        "vulnerable_versions": ["<4.17.19"],
+        "severity": "high",
+        "description": "Lodash prototype pollution vulnerability",
+        "fixed_version": "4.17.19"
+      }
+    ],
+    "axios": [
+      {
+        "cve_id": "CVE-2023-45857",
+        "vulnerable_versions": ["<1.6.0"],
+        "severity": "medium",
+        "description": "Axios CSRF vulnerability in form data handling",
+        "fixed_version": "1.6.0"
+      }
+    ],
+    "express": [
+      {
+        "cve_id": "CVE-2022-24999",
+        "vulnerable_versions": ["<4.18.2"],
+        "severity": "medium",
+        "description": "Express.js open redirect vulnerability",
+        "fixed_version": "4.18.2"
+      }
+    ],
+    "react": [
+      {
+        "cve_id": "CVE-2018-6341",
+        "vulnerable_versions": ["<16.0.0"],
+        "severity": "medium",
+        "description": "React XSS vulnerability in development mode",
+        "fixed_version": "16.0.0"
+      }
+    ],
+    "moment": [
+      {
+        "cve_id": "CVE-2022-24785",
+        "vulnerable_versions": ["<2.29.2"],
+        "severity": "high",
+        "description": "Moment.js path traversal vulnerability",
+        "fixed_version": "2.29.2"
+      }
+    ],
+    "node-fetch": [
+      {
+        "cve_id": "CVE-2022-0235",
+        "vulnerable_versions": ["<2.6.7", ">=3.0.0,<3.2.0"],
+        "severity": "medium",
+        "description": "node-fetch exposure of sensitive information",
+        "fixed_version": "2.6.7"
+      }
+    ],
+    "ws": [
+      {
+        "cve_id": "CVE-2021-32640",
+        "vulnerable_versions": ["<5.2.3", ">=6.0.0,<6.2.2", ">=7.0.0,<7.4.6"],
+        "severity": "medium",
+        "description": "ws ReDoS vulnerability",
+        "fixed_version": "5.2.3"
+      }
+    ]
+  },
+  "rust": {
+    "serde": [
+      {
+        "cve_id": "RUSTSEC-2022-0040",
+        "vulnerable_versions": ["<1.0.145"],
+        "severity": "medium",
+        "description": "Serde stack overflow in deeply nested structures",
+        "fixed_version": "1.0.145"
+      }
+    ],
+    "openssl": [
+      {
+        "cve_id": "RUSTSEC-2023-0044",
+        "vulnerable_versions": ["<0.10.55"],
+        "severity": "high",
+        "description": "OpenSSL memory corruption vulnerability",
+        "fixed_version": "0.10.55"
+      }
+    ]
+  },
+  "go": {
+    "github.com/gin-gonic/gin": [
+      {
+        "cve_id": "CVE-2023-26125",
+        "vulnerable_versions": ["<1.9.1"],
+        "severity": "medium",
+        "description": "Gin path traversal vulnerability",
+        "fixed_version": "1.9.1"
+      }
+    ],
+    "github.com/gorilla/websocket": [
+      {
+        "cve_id": "CVE-2022-1705",
+        "vulnerable_versions": ["<1.5.0"],
+        "severity": "medium",
+        "description": "Gorilla WebSocket improper input validation",
+        "fixed_version": "1.5.0"
+      }
+    ]
+  },
+  "java": {
+    "org.springframework:spring-core": [
+      {
+        "cve_id": "CVE-2023-20861",
+        "vulnerable_versions": ["<5.3.21", ">=6.0.0,<6.0.8"],
+        "severity": "medium",
+        "description": "Spring Framework SpEL expression injection",
+        "fixed_version": "5.3.21"
+      }
+    ],
+    "com.fasterxml.jackson.core:jackson-databind": [
+      {
+        "cve_id": "CVE-2022-42003",
+        "vulnerable_versions": ["<2.13.4.2"],
+        "severity": "high",
+        "description": "Jackson Databind deep wrapper array nesting causing DoS",
+        "fixed_version": "2.13.4.2"
+      }
+    ],
+    "org.apache.logging.log4j:log4j-core": [
+      {
+        "cve_id": "CVE-2021-44228",
+        "vulnerable_versions": [">=2.0,<2.15.0"],
+        "severity": "critical",
+        "description": "Log4j2 JNDI injection vulnerability (Log4Shell)",
+        "fixed_version": "2.15.0"
+      }
+    ]
+  },
+  "php": {
+    "symfony/symfony": [
+      {
+        "cve_id": "CVE-2023-21267",
+        "vulnerable_versions": ["<4.4.48", ">=5.0,<5.4.28", ">=6.0,<6.2.14"],
+        "severity": "medium",
+        "description": "Symfony HTTP cache poisoning vulnerability",
+        "fixed_version": "4.4.48"
+      }
+    ],
+    "laravel/framework": [
+      {
+        "cve_id": "CVE-2021-21263",
+        "vulnerable_versions": ["<6.20.14", ">=7.0,<7.30.4", ">=8.0,<8.24.0"],
+        "severity": "high",
+        "description": "Laravel query binding vulnerability",
+        "fixed_version": "6.20.14"
+      }
+    ]
+  }
+}

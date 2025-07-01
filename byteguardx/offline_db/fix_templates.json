@@ -1,0 +1,270 @@
+{
+  "secrets": {
+    "api_keys.aws_access_key": {
+      "pattern": "AKIA[0-9A-Z]{16}",
+      "replacement": "os.environ.get('AWS_ACCESS_KEY_ID')",
+      "explanation": "Move AWS access key to environment variable for security",
+      "imports": ["import os"],
+      "example": {
+        "before": "aws_access_key = 'AKIAIOSFODNN7EXAMPLE'",
+        "after": "aws_access_key = os.environ.get('AWS_ACCESS_KEY_ID')"
+      },
+      "env_file_example": "AWS_ACCESS_KEY_ID=your_actual_key_here"
+    },
+    "api_keys.github_token": {
+      "pattern": "ghp_[A-Za-z0-9]{36}",
+      "replacement": "os.environ.get('GITHUB_TOKEN')",
+      "explanation": "Store GitHub token in environment variable",
+      "imports": ["import os"],
+      "example": {
+        "before": "token = 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'",
+        "after": "token = os.environ.get('GITHUB_TOKEN')"
+      },
+      "env_file_example": "GITHUB_TOKEN=your_github_token_here"
+    },
+    "api_keys.stripe_live_key": {
+      "pattern": "sk_live_[A-Za-z0-9]{24}",
+      "replacement": "os.environ.get('STRIPE_SECRET_KEY')",
+      "explanation": "Never hardcode Stripe live keys - use environment variables",
+      "imports": ["import os"],
+      "example": {
+        "before": "stripe.api_key = 'sk_live_xxxxxxxxxxxxxxxxxxxxxxxx'",
+        "after": "stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')"
+      },
+      "env_file_example": "STRIPE_SECRET_KEY=your_stripe_key_here"
+    },
+    "generic.password_assignment": {
+      "pattern": "(password|pwd|pass)\\s*[=:]\\s*['\"][^'\"]{8,}['\"]",
+      "replacement": "\\1 = os.environ.get('PASSWORD')",
+      "explanation": "Store passwords in environment variables or secure vaults",
+      "imports": ["import os"],
+      "example": {
+        "before": "password = 'mySecretPassword123'",
+        "after": "password = os.environ.get('PASSWORD')"
+      },
+      "env_file_example": "PASSWORD=your_secure_password_here"
+    },
+    "database.mongodb_connection": {
+      "pattern": "mongodb://[^\\s]+",
+      "replacement": "os.environ.get('MONGODB_URI')",
+      "explanation": "Store database connection strings in environment variables",
+      "imports": ["import os"],
+      "example": {
+        "before": "uri = 'mongodb://user:pass@localhost:27017/db'",
+        "after": "uri = os.environ.get('MONGODB_URI')"
+      },
+      "env_file_example": "MONGODB_URI=mongodb://user:pass@localhost:27017/db"
+    }
+  },
+  "ai_patterns": {
+    "input_validation.no_input_sanitization": {
+      "pattern": "input\\(\\s*[\"'][^\"']*[\"']\\s*\\)",
+      "replacement": "validate_input(input(\\1))",
+      "explanation": "Always validate and sanitize user input to prevent injection attacks",
+      "imports": ["from validators import validate_input"],
+      "helper_functions": [
+        "def validate_input(user_input):",
+        "    '''Validate and sanitize user input'''",
+        "    if not user_input:",
+        "        raise ValueError('Input cannot be empty')",
+        "    if len(user_input) > 1000:",
+        "        raise ValueError('Input too long')",
+        "    # Remove potentially dangerous characters",
+        "    sanitized = re.sub(r'[<>\"\\';]', '', user_input)",
+        "    return sanitized.strip()"
+      ],
+      "example": {
+        "before": "name = input('Enter your name: ')",
+        "after": "name = validate_input(input('Enter your name: '))"
+      }
+    },
+    "input_validation.sql_injection_risk": {
+      "pattern": "execute\\(\\s*[\"'].*%s.*[\"']\\s*%",
+      "replacement": "execute(query, params)",
+      "explanation": "Use parameterized queries to prevent SQL injection",
+      "example": {
+        "before": "cursor.execute('SELECT * FROM users WHERE id = %s' % user_id)",
+        "after": "cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))"
+      },
+      "additional_info": "Always use parameterized queries or ORM methods instead of string formatting"
+    },
+    "authentication.weak_password_check": {
+      "pattern": "password\\s*==\\s*[\"'][^\"']{1,7}[\"']",
+      "replacement": "bcrypt.checkpw(password.encode('utf-8'), stored_hash)",
+      "explanation": "Use proper password hashing instead of plain text comparison",
+      "imports": ["import bcrypt"],
+      "helper_functions": [
+        "def hash_password(password):",
+        "    '''Hash a password for storing'''",
+        "    salt = bcrypt.gensalt()",
+        "    return bcrypt.hashpw(password.encode('utf-8'), salt)",
+        "",
+        "def verify_password(password, hashed):",
+        "    '''Verify a password against its hash'''",
+        "    return bcrypt.checkpw(password.encode('utf-8'), hashed)"
+      ],
+      "example": {
+        "before": "if password == 'admin':",
+        "after": "if verify_password(password, stored_hash):"
+      }
+    },
+    "crypto.weak_encryption": {
+      "pattern": "MD5\\(",
+      "replacement": "hashlib.sha256(",
+      "explanation": "Use SHA-256 or stronger algorithms instead of MD5",
+      "imports": ["import hashlib"],
+      "example": {
+        "before": "hash_value = hashlib.md5(data).hexdigest()",
+        "after": "hash_value = hashlib.sha256(data).hexdigest()"
+      },
+      "additional_info": "MD5 is cryptographically broken and should not be used for security purposes"
+    },
+    "error_handling.bare_except": {
+      "pattern": "except\\s*:",
+      "replacement": "except SpecificException as e:",
+      "explanation": "Catch specific exceptions instead of using bare except clauses",
+      "example": {
+        "before": "try:\n    risky_operation()\nexcept:\n    pass",
+        "after": "try:\n    risky_operation()\nexcept ValueError as e:\n    logger.error(f'Value error: {e}')\n    # Handle specific error appropriately"
+      },
+      "additional_info": "Bare except clauses can hide bugs and make debugging difficult"
+    },
+    "file_operations.path_traversal": {
+      "pattern": "open\\(\\s*[^)]*\\+[^)]*\\)",
+      "replacement": "open(secure_path(filename), mode)",
+      "explanation": "Validate file paths to prevent directory traversal attacks",
+      "imports": ["import os", "import re"],
+      "helper_functions": [
+        "def secure_path(filename, base_dir='/safe/directory'):",
+        "    '''Secure file path validation'''",
+        "    # Remove dangerous characters",
+        "    clean_name = re.sub(r'[^a-zA-Z0-9._-]', '', filename)",
+        "    # Prevent directory traversal",
+        "    safe_path = os.path.join(base_dir, clean_name)",
+        "    # Ensure path is within base directory",
+        "    if not os.path.abspath(safe_path).startswith(os.path.abspath(base_dir)):",
+        "        raise ValueError('Invalid file path')",
+        "    return safe_path"
+      ],
+      "example": {
+        "before": "with open(user_filename, 'r') as f:",
+        "after": "with open(secure_path(user_filename), 'r') as f:"
+      }
+    },
+    "authentication.no_auth_check": {
+      "pattern": "@app\\.route\\([^)]+\\)(?!\\s*@.*auth)",
+      "replacement": "@app.route(path)\\n@require_auth",
+      "explanation": "Add authentication decorators to protected endpoints",
+      "helper_functions": [
+        "from functools import wraps",
+        "from flask import session, redirect, url_for",
+        "",
+        "def require_auth(f):",
+        "    @wraps(f)",
+        "    def decorated_function(*args, **kwargs):",
+        "        if 'user_id' not in session:",
+        "            return redirect(url_for('login'))",
+        "        return f(*args, **kwargs)",
+        "    return decorated_function"
+      ],
+      "example": {
+        "before": "@app.route('/admin')\ndef admin_panel():",
+        "after": "@app.route('/admin')\n@require_auth\ndef admin_panel():"
+      }
+    }
+  },
+  "dependencies": {
+    "update_package": {
+      "explanation": "Update package to the latest secure version",
+      "commands": {
+        "python": {
+          "pip": "pip install {package}=={version}",
+          "poetry": "poetry add {package}@{version}",
+          "conda": "conda install {package}={version}"
+        },
+        "javascript": {
+          "npm": "npm install {package}@{version}",
+          "yarn": "yarn add {package}@{version}",
+          "pnpm": "pnpm add {package}@{version}"
+        },
+        "rust": {
+          "cargo": "cargo update {package}"
+        },
+        "go": {
+          "go": "go get {package}@{version}"
+        },
+        "java": {
+          "maven": "Update version in pom.xml: <version>{version}</version>",
+          "gradle": "Update version in build.gradle: '{package}:{version}'"
+        },
+        "php": {
+          "composer": "composer require {package}:{version}"
+        }
+      },
+      "additional_steps": [
+        "1. Check release notes for breaking changes",
+        "2. Test the application after updating",
+        "3. Update lock files (package-lock.json, poetry.lock, etc.)",
+        "4. Consider using dependency scanning tools in CI/CD"
+      ]
+    }
+  },
+  "general_security": {
+    "environment_variables": {
+      "explanation": "Best practices for environment variables",
+      "example_env_file": [
+        "# .env file example",
+        "# Database",
+        "DATABASE_URL=postgresql://user:pass@localhost/db",
+        "",
+        "# API Keys",
+        "API_KEY=your_api_key_here",
+        "SECRET_KEY=your_secret_key_here",
+        "",
+        "# Third-party services",
+        "STRIPE_SECRET_KEY=sk_test_...",
+        "GITHUB_TOKEN=ghp_...",
+        "",
+        "# Security",
+        "JWT_SECRET=your_jwt_secret",
+        "ENCRYPTION_KEY=your_encryption_key"
+      ],
+      "loading_examples": {
+        "python": [
+          "import os",
+          "from dotenv import load_dotenv",
+          "",
+          "load_dotenv()",
+          "api_key = os.environ.get('API_KEY')",
+          "if not api_key:",
+          "    raise ValueError('API_KEY environment variable is required')"
+        ],
+        "javascript": [
+          "require('dotenv').config();",
+          "",
+          "const apiKey = process.env.API_KEY;",
+          "if (!apiKey) {",
+          "  throw new Error('API_KEY environment variable is required');",
+          "}"
+        ]
+      }
+    },
+    "input_validation": {
+      "explanation": "Comprehensive input validation strategies",
+      "validation_types": {
+        "length": "Check minimum and maximum length",
+        "format": "Use regex patterns for format validation",
+        "type": "Ensure correct data types",
+        "range": "Validate numeric ranges",
+        "whitelist": "Use whitelists for allowed values",
+        "sanitization": "Remove or escape dangerous characters"
+      },
+      "example_validators": {
+        "email": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+        "phone": "^\\+?[1-9]\\d{1,14}$",
+        "alphanumeric": "^[a-zA-Z0-9]+$",
+        "safe_filename": "^[a-zA-Z0-9._-]+$"
+      }
+    }
+  }
+}
