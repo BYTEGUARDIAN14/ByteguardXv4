@@ -1,0 +1,176 @@
+name: ByteGuardX Security Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmagic1 libmagic-dev
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt || echo "No requirements.txt found"
+        pip install python-magic setuptools PyJWT sqlalchemy bcrypt qrcode[pil] pyotp numpy cryptography
+        
+    - name: Set up environment variables
+      run: |
+        echo "JWT_SECRET_KEY=test-jwt-secret-key-for-ci-validation-only" >> $GITHUB_ENV
+        echo "BYTEGUARDX_MASTER_KEY=test-master-key-for-ci-validation-only" >> $GITHUB_ENV
+        echo "DATABASE_URL=sqlite:///test.db" >> $GITHUB_ENV
+        echo "ENV=test" >> $GITHUB_ENV
+        
+    - name: Create required directories
+      run: |
+        mkdir -p data logs reports
+        mkdir -p byteguardx/offline_db
+        mkdir -p byteguardx/reports/templates
+        
+    - name: Run Security Validation
+      id: security-validation
+      run: |
+        python security_validation_summary.py
+        echo "validation_exit_code=$?" >> $GITHUB_OUTPUT
+        
+    - name: Upload Security Validation Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-validation-results
+        path: security_validation_results.json
+        
+    - name: Security Validation Summary
+      if: always()
+      run: |
+        echo "## 🔐 Security Validation Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f security_validation_results.json ]; then
+          SUCCESS_RATE=$(python -c "import json; data=json.load(open('security_validation_results.json')); print(f'{data[\"success_rate\"]:.1f}%')")
+          PASSED=$(python -c "import json; data=json.load(open('security_validation_results.json')); print(data['passed_checks'])")
+          TOTAL=$(python -c "import json; data=json.load(open('security_validation_results.json')); print(data['total_checks'])")
+          FAILED=$(python -c "import json; data=json.load(open('security_validation_results.json')); print(data['failed_checks'])")
+          
+          echo "- **Success Rate**: $SUCCESS_RATE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Passed Checks**: $PASSED/$TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed Checks**: $FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$FAILED" -eq 0 ]; then
+            echo "✅ **All security modules are operational!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some security modules need attention**" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "❌ **Security validation failed to generate results**" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Fail on Critical Security Issues
+      if: steps.security-validation.outputs.validation_exit_code == '2'
+      run: |
+        echo "❌ Critical security issues detected!"
+        exit 1
+        
+    - name: Comment PR with Security Status
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let comment = '## 🔐 Security Validation Results\n\n';
+          
+          try {
+            const results = JSON.parse(fs.readFileSync('security_validation_results.json', 'utf8'));
+            const successRate = results.success_rate.toFixed(1);
+            const passed = results.passed_checks;
+            const total = results.total_checks;
+            const failed = results.failed_checks;
+            
+            comment += `- **Success Rate**: ${successRate}%\n`;
+            comment += `- **Passed Checks**: ${passed}/${total}\n`;
+            comment += `- **Failed Checks**: ${failed}\n\n`;
+            
+            if (failed === 0) {
+              comment += '✅ **All security modules are operational!**\n';
+            } else {
+              comment += '❌ **Some security modules need attention**\n\n';
+              comment += '### Failed Checks:\n';
+              
+              for (const [category, checks] of Object.entries(results.detailed_results)) {
+                for (const [check, status] of Object.entries(checks)) {
+                  if (status.startsWith('❌')) {
+                    comment += `- **${category}**: ${check} - ${status}\n`;
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            comment += '❌ **Security validation failed to generate results**\n';
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  security-scanning:
+    runs-on: ubuntu-latest
+    needs: security-validation
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install security scanning tools
+      run: |
+        pip install bandit safety trufflehog
+        
+    - name: Run Bandit (Python Security Linter)
+      run: |
+        bandit -r byteguardx/ -f json -o bandit-report.json || true
+        
+    - name: Run Safety (Dependency Vulnerability Scanner)
+      run: |
+        safety check --json --output safety-report.json || true
+        
+    - name: Run TruffleHog (Secret Scanner)
+      run: |
+        trufflehog filesystem . --json > trufflehog-report.json || true
+        
+    - name: Upload Security Scan Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: |
+          bandit-report.json
+          safety-report.json
+          trufflehog-report.json

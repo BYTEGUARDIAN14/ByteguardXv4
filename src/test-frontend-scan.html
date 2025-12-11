@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Scan Test - ByteGuardX</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #00bcd4;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #00bcd4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0891b2;
+        }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+        .response {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #475569;
+        }
+        .success {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .error {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 8px;
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Frontend Scan Test</h1>
+        
+        <h3>Test Different Scan Endpoints:</h3>
+        
+        <div>
+            <input type="file" id="file-input" accept="*/*">
+            <br>
+            <button onclick="testDirectBackend()">Test Direct Backend (:5000)</button>
+            <button onclick="testFrontendProxy()">Test Frontend Proxy (:3000)</button>
+            <button onclick="testDifferentEndpoints()">Test Different Endpoints</button>
+        </div>
+
+        <div id="response" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.style.display = 'block';
+            responseDiv.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+
+        function clearLog() {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = '';
+            responseDiv.className = 'response';
+        }
+
+        async function testDirectBackend() {
+            clearLog();
+            log('Testing direct backend connection (localhost:5000)...');
+            
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files[0]) {
+                log('❌ Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                log('📤 Sending request to http://localhost:5000/api/scan');
+                
+                const response = await fetch('http://localhost:5000/api/scan', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+                log(`📋 Response headers: ${JSON.stringify(Object.fromEntries(response.headers), null, 2)}`);
+
+                const responseText = await response.text();
+                log(`📄 Response body: ${responseText}`);
+
+                if (response.ok) {
+                    document.getElementById('response').className = 'response success';
+                    log('✅ Direct backend test PASSED');
+                } else {
+                    document.getElementById('response').className = 'response error';
+                    log('❌ Direct backend test FAILED');
+                }
+
+            } catch (error) {
+                document.getElementById('response').className = 'response error';
+                log(`❌ Network error: ${error.message}`);
+                log('This might be a CORS issue when calling backend directly from frontend');
+            }
+        }
+
+        async function testFrontendProxy() {
+            clearLog();
+            log('Testing frontend proxy (localhost:3000/api/scan)...');
+            
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files[0]) {
+                log('❌ Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                log('📤 Sending request to /api/scan (through frontend proxy)');
+                
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+                log(`📋 Response headers: ${JSON.stringify(Object.fromEntries(response.headers), null, 2)}`);
+
+                const responseText = await response.text();
+                log(`📄 Response body: ${responseText}`);
+
+                if (response.ok) {
+                    document.getElementById('response').className = 'response success';
+                    log('✅ Frontend proxy test PASSED');
+                } else {
+                    document.getElementById('response').className = 'response error';
+                    log('❌ Frontend proxy test FAILED');
+                }
+
+            } catch (error) {
+                document.getElementById('response').className = 'response error';
+                log(`❌ Network error: ${error.message}`);
+                log('This indicates the frontend proxy is not working correctly');
+            }
+        }
+
+        async function testDifferentEndpoints() {
+            clearLog();
+            log('Testing different scan endpoints...');
+
+            const endpoints = [
+                '/api/scan',
+                '/api/v1/scan',
+                '/scan',
+                '/api/scan/upload',
+                '/api/upload'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    log(`\n🔍 Testing ${endpoint}...`);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ test: 'data' }),
+                        credentials: 'include'
+                    });
+
+                    log(`  Status: ${response.status} ${response.statusText}`);
+                    
+                    if (response.status !== 404) {
+                        const responseText = await response.text();
+                        log(`  Response: ${responseText.substring(0, 200)}...`);
+                    }
+
+                } catch (error) {
+                    log(`  Error: ${error.message}`);
+                }
+            }
+
+            log('\n🎉 Endpoint testing completed');
+        }
+
+        // Test connectivity on page load
+        window.addEventListener('load', async () => {
+            clearLog();
+            log('🚀 Page loaded, testing basic connectivity...');
+            
+            try {
+                const response = await fetch('/api/v1/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Backend connectivity: OK');
+                    log(`Backend response: ${JSON.stringify(data)}`);
+                } else {
+                    log(`⚠️ Backend connectivity: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Backend connectivity failed: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

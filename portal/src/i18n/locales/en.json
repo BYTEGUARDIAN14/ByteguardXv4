@@ -1,0 +1,238 @@
+{
+  "navigation": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "download": "Download",
+    "extensions": "Extensions",
+    "docs": "Documentation",
+    "support": "Support",
+    "login": "Login",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard"
+  },
+  "hero": {
+    "title": "The Future of Code Security",
+    "subtitle": "AI-powered vulnerability detection that protects your applications before they reach production",
+    "cta_primary": "Start Free Trial",
+    "cta_secondary": "Watch Demo",
+    "trusted_by": "Trusted by developers at"
+  },
+  "features": {
+    "title": "Advanced Security Features",
+    "subtitle": "Comprehensive protection powered by cutting-edge AI technology",
+    "ai_detection": {
+      "title": "AI-Powered Detection",
+      "description": "Advanced machine learning models identify vulnerabilities with 99.7% accuracy"
+    },
+    "real_time": {
+      "title": "Real-Time Scanning",
+      "description": "Instant feedback as you code with IDE integrations and live monitoring"
+    },
+    "enterprise": {
+      "title": "Enterprise Ready",
+      "description": "SOC2 compliant with enterprise-grade security and team collaboration"
+    },
+    "integrations": {
+      "title": "Seamless Integrations",
+      "description": "Works with your existing tools and CI/CD pipelines out of the box"
+    }
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Start free and scale as you grow",
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "forever",
+      "description": "Perfect for individual developers",
+      "features": [
+        "Up to 5 scans per month",
+        "Basic vulnerability detection",
+        "Community support",
+        "Public repository scanning"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "$29",
+      "period": "per month",
+      "description": "For professional developers",
+      "features": [
+        "Unlimited scans",
+        "Advanced AI detection",
+        "Priority support",
+        "Private repository scanning",
+        "IDE integrations",
+        "Custom rules"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Custom",
+      "period": "contact us",
+      "description": "For teams and organizations",
+      "features": [
+        "Everything in Pro",
+        "Team collaboration",
+        "SSO integration",
+        "Compliance reporting",
+        "Dedicated support",
+        "On-premise deployment"
+      ]
+    }
+  },
+  "download": {
+    "title": "Download ByteGuardX",
+    "subtitle": "Get started with the most advanced AI-powered code security platform",
+    "recommended": "Recommended for your device",
+    "desktop_apps": "Desktop Apps",
+    "mobile_apps": "Mobile Apps",
+    "developer_tools": "Developer Tools",
+    "features": {
+      "offline_scanning": "Offline scanning",
+      "real_time_protection": "Real-time protection",
+      "plugin_support": "Plugin support",
+      "advanced_reporting": "Advanced reporting"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": "Overview",
+    "recent_scans": "Recent Scans",
+    "security_score": "Security Score",
+    "vulnerabilities": "Vulnerabilities",
+    "scan_now": "Scan Now",
+    "schedule_scan": "Schedule Scan",
+    "view_reports": "View Reports"
+  },
+  "scanning": {
+    "upload_code": "Upload Code",
+    "connect_repo": "Connect Repository",
+    "scanning_progress": "Scanning in progress...",
+    "scan_complete": "Scan Complete",
+    "vulnerabilities_found": "{{count}} vulnerabilities found",
+    "no_vulnerabilities": "No vulnerabilities found",
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  },
+  "reports": {
+    "title": "Security Reports",
+    "generate_report": "Generate Report",
+    "export_pdf": "Export PDF",
+    "export_csv": "Export CSV",
+    "compliance_report": "Compliance Report",
+    "vulnerability_trends": "Vulnerability Trends",
+    "scan_history": "Scan History"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "security": "Security",
+    "notifications": "Notifications",
+    "integrations": "Integrations",
+    "billing": "Billing",
+    "language": "Language",
+    "theme": "Theme",
+    "save_changes": "Save Changes"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Welcome back to ByteGuardX",
+      "email": "Email",
+      "password": "Password",
+      "remember_me": "Remember me",
+      "forgot_password": "Forgot password?",
+      "sign_in": "Sign In",
+      "no_account": "Don't have an account?",
+      "sign_up": "Sign up"
+    },
+    "signup": {
+      "title": "Create Account",
+      "subtitle": "Join thousands of developers securing their code",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "email": "Email",
+      "password": "Password",
+      "confirm_password": "Confirm Password",
+      "terms": "I agree to the Terms of Service and Privacy Policy",
+      "create_account": "Create Account",
+      "have_account": "Already have an account?",
+      "sign_in": "Sign in"
+    },
+    "two_factor": {
+      "title": "Two-Factor Authentication",
+      "subtitle": "Enter the code from your authenticator app",
+      "code": "Authentication Code",
+      "verify": "Verify",
+      "backup_code": "Use backup code instead"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "not_found": "The requested resource was not found.",
+    "validation": "Please check your input and try again.",
+    "rate_limit": "Too many requests. Please wait and try again."
+  },
+  "success": {
+    "saved": "Changes saved successfully",
+    "uploaded": "File uploaded successfully",
+    "scan_started": "Scan started successfully",
+    "report_generated": "Report generated successfully",
+    "settings_updated": "Settings updated successfully"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "learn_more": "Learn More",
+    "get_started": "Get Started",
+    "try_free": "Try Free",
+    "contact_us": "Contact Us"
+  },
+  "footer": {
+    "description": "The most advanced AI-powered code security platform. Protect your applications with enterprise-grade vulnerability detection and real-time threat analysis.",
+    "product": "Product",
+    "resources": "Resources",
+    "support": "Support",
+    "company": "Company",
+    "legal": "Legal",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service",
+    "cookie_policy": "Cookie Policy",
+    "copyright": "© {{year}} ByteGuardX. All rights reserved.",
+    "made_with_love": "Made with ❤️ for developers worldwide"
+  },
+  "accessibility": {
+    "skip_to_content": "Skip to main content",
+    "skip_to_navigation": "Skip to navigation",
+    "high_contrast": "High contrast mode",
+    "increase_font_size": "Increase font size",
+    "decrease_font_size": "Decrease font size",
+    "screen_reader_mode": "Screen reader mode"
+  }
+}

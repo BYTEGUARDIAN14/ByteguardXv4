@@ -1,0 +1,53 @@
+{
+  "name": "byteguardx-portal-security",
+  "version": "1.0.0",
+  "description": "Security configuration and scripts for ByteGuardX Portal",
+  "scripts": {
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit-fix": "npm audit fix",
+    "security:lint": "eslint src/ --config .eslintrc.security.js --ext .js,.jsx,.ts,.tsx",
+    "security:lint-fix": "eslint src/ --config .eslintrc.security.js --ext .js,.jsx,.ts,.tsx --fix",
+    "security:check-deps": "npm-check-updates --doctor",
+    "security:licenses": "license-checker --summary",
+    "security:build-secure": "vite build --config vite.config.security.ts",
+    "security:preview-secure": "vite preview --config vite.config.security.ts",
+    "security:test": "npm run security:audit && npm run security:lint && npm run security:licenses",
+    "security:report": "npm run security:audit --json > security-audit.json && npm run security:licenses --json > security-licenses.json",
+    "security:clean": "rm -rf node_modules package-lock.json && npm install",
+    "security:update": "npm update && npm audit fix",
+    "security:validate": "node scripts/validate-security.js"
+  },
+  "devDependencies": {
+    "eslint-plugin-security": "^1.7.1",
+    "license-checker": "^25.0.1",
+    "npm-check-updates": "^16.14.12",
+    "@fullhuman/postcss-purgecss": "^5.0.0",
+    "terser": "^5.24.0"
+  },
+  "security": {
+    "advisories": {
+      "ignore": [],
+      "severity": "moderate"
+    },
+    "allowedLicenses": [
+      "MIT",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "ISC",
+      "0BSD"
+    ],
+    "blockedPackages": [
+      "lodash",
+      "moment",
+      "request"
+    ],
+    "trustedRegistries": [
+      "https://registry.npmjs.org/"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

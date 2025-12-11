@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Glassmorphism utility */
+.bg-glass {
+  background: rgba(20, 20, 30, 0.6);
+  backdrop-filter: blur(12px);
+}
+

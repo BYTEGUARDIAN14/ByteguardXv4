@@ -1,0 +1,254 @@
+{
+  "name": "byteguardx",
+  "displayName": "ByteGuardX Security Scanner",
+  "description": "AI-powered security vulnerability scanner for VS Code",
+  "version": "1.0.0",
+  "publisher": "byteguardx",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/byteguardx/vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "vulnerability",
+    "scanner",
+    "secrets",
+    "dependencies",
+    "ai"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "byteguardx.scanFile",
+        "title": "Scan Current File",
+        "category": "ByteGuardX",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "byteguardx.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "ByteGuardX",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "byteguardx.scanSelection",
+        "title": "Scan Selection",
+        "category": "ByteGuardX",
+        "icon": "$(selection)"
+      },
+      {
+        "command": "byteguardx.showReport",
+        "title": "Show Security Report",
+        "category": "ByteGuardX",
+        "icon": "$(report)"
+      },
+      {
+        "command": "byteguardx.clearFindings",
+        "title": "Clear All Findings",
+        "category": "ByteGuardX",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "byteguardx.configure",
+        "title": "Configure ByteGuardX",
+        "category": "ByteGuardX",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "byteguardx.scanFile",
+          "group": "byteguardx",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "byteguardx.scanSelection",
+          "group": "byteguardx",
+          "when": "editorHasSelection"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "byteguardx.scanFile",
+          "group": "byteguardx",
+          "when": "resourceExtname =~ /\\.(py|js|jsx|ts|tsx|java|cpp|c|h|cs|php|rb|go|rs)$/"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "byteguardx.scanFile",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "byteguardx.scanWorkspace",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "byteguardx.scanSelection",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "byteguardx.scanFile",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "byteguardx.scanWorkspace",
+        "key": "ctrl+shift+w",
+        "mac": "cmd+shift+w"
+      }
+    ],
+    "configuration": {
+      "title": "ByteGuardX",
+      "properties": {
+        "byteguardx.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:5000",
+          "description": "ByteGuardX API URL"
+        },
+        "byteguardx.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "ByteGuardX API key for authentication"
+        },
+        "byteguardx.enableSecretScanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable secret detection scanning"
+        },
+        "byteguardx.enableDependencyScanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable dependency vulnerability scanning"
+        },
+        "byteguardx.enableAIPatternScanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI pattern analysis"
+        },
+        "byteguardx.autoScanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan files when saved"
+        },
+        "byteguardx.showInlineDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline security decorations"
+        },
+        "byteguardx.minimumSeverity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "default": "medium",
+          "description": "Minimum severity level to display"
+        },
+        "byteguardx.excludePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/venv/**",
+            "**/__pycache__/**"
+          ],
+          "description": "File patterns to exclude from scanning"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "byteguardxFindings",
+          "name": "Security Findings",
+          "when": "byteguardx.hasFindings"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "byteguardx",
+          "title": "ByteGuardX",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "byteguardx.critical",
+        "description": "Critical severity color",
+        "defaults": {
+          "dark": "#ff4444",
+          "light": "#cc0000"
+        }
+      },
+      {
+        "id": "byteguardx.high",
+        "description": "High severity color",
+        "defaults": {
+          "dark": "#ff8800",
+          "light": "#ff6600"
+        }
+      },
+      {
+        "id": "byteguardx.medium",
+        "description": "Medium severity color",
+        "defaults": {
+          "dark": "#ffcc00",
+          "light": "#ff9900"
+        }
+      },
+      {
+        "id": "byteguardx.low",
+        "description": "Low severity color",
+        "defaults": {
+          "dark": "#88cc00",
+          "light": "#66aa00"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "minimatch": "^9.0.3"
+  }
+}

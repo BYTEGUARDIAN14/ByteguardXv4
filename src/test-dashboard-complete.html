@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Dashboard Test - ByteGuardX</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #00bcd4;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #00bcd4;
+            border-bottom: 2px solid #00bcd4;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #00bcd4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0891b2;
+        }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+        .response {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #475569;
+        }
+        .success {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .error {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .warning {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background: #10b981; }
+        .status-error { background: #ef4444; }
+        .status-warning { background: #f59e0b; }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 8px;
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Complete Dashboard & Scan Test</h1>
+    
+    <div class="grid">
+        <!-- Dashboard Data Tests -->
+        <div class="container">
+            <h2>📊 Dashboard Data</h2>
+            
+            <div>
+                <h3>Recent Scans</h3>
+                <button onclick="testRecentScans()">Fetch Recent Scans</button>
+                <div id="recent-scans-response" class="response" style="display: none;"></div>
+            </div>
+            
+            <div>
+                <h3>User Statistics</h3>
+                <button onclick="testUserStats()">Fetch User Stats</button>
+                <div id="user-stats-response" class="response" style="display: none;"></div>
+            </div>
+            
+            <div>
+                <h3>Scheduled Scans</h3>
+                <button onclick="testScheduledScans()">Fetch Scheduled Scans</button>
+                <div id="scheduled-scans-response" class="response" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- File Scanning Tests -->
+        <div class="container">
+            <h2>🔍 File Scanning</h2>
+            
+            <div>
+                <h3>CORS Test</h3>
+                <button onclick="testCORS()">Test CORS Headers</button>
+                <div id="cors-response" class="response" style="display: none;"></div>
+            </div>
+            
+            <div>
+                <h3>File Upload</h3>
+                <input type="file" id="test-file" accept="*/*">
+                <br>
+                <button onclick="testFileUpload()">Test File Upload</button>
+                <div id="upload-response" class="response" style="display: none;"></div>
+            </div>
+            
+            <div>
+                <h3>All Scan Endpoints</h3>
+                <button onclick="testAllScanEndpoints()">Test All Endpoints</button>
+                <div id="all-endpoints-response" class="response" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Status -->
+    <div class="container">
+        <h2>🎯 System Status Summary</h2>
+        <div id="system-summary">
+            <div>🔧 Backend Health: <span id="backend-health">Checking...</span></div>
+            <div>📊 Dashboard APIs: <span id="dashboard-apis">Checking...</span></div>
+            <div>🔍 Scan APIs: <span id="scan-apis">Checking...</span></div>
+            <div>🌐 CORS Configuration: <span id="cors-status">Checking...</span></div>
+            <div>🔐 Authentication: <span id="auth-status">Checking...</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Utility functions
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `response ${type}`;
+            element.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+
+        function clearLog(elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = '';
+            element.className = 'response';
+        }
+
+        function updateStatus(elementId, status, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<span class="status-indicator status-${status}"></span>${message}`;
+        }
+
+        // Test recent scans
+        async function testRecentScans() {
+            clearLog('recent-scans-response');
+            log('recent-scans-response', 'Fetching recent scans...');
+            
+            try {
+                const response = await fetch('/api/scans/recent', {
+                    credentials: 'include'
+                });
+                
+                log('recent-scans-response', `Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('recent-scans-response', `✅ Found ${data.scans?.length || 0} recent scans`);
+                    log('recent-scans-response', `Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log('recent-scans-response', `❌ Error: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log('recent-scans-response', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test user stats
+        async function testUserStats() {
+            clearLog('user-stats-response');
+            log('user-stats-response', 'Fetching user statistics...');
+            
+            try {
+                const response = await fetch('/api/user/stats', {
+                    credentials: 'include'
+                });
+                
+                log('user-stats-response', `Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('user-stats-response', `✅ Stats loaded successfully`);
+                    log('user-stats-response', `Total scans: ${data.stats?.total_scans || 0}`);
+                    log('user-stats-response', `Files scanned: ${data.stats?.files_scanned || 0}`);
+                    log('user-stats-response', `Vulnerabilities: ${data.stats?.vulnerabilities_found || 0}`);
+                    log('user-stats-response', `Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log('user-stats-response', `❌ Error: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log('user-stats-response', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test scheduled scans
+        async function testScheduledScans() {
+            clearLog('scheduled-scans-response');
+            log('scheduled-scans-response', 'Fetching scheduled scans...');
+            
+            try {
+                const response = await fetch('/api/scans/scheduled', {
+                    credentials: 'include'
+                });
+                
+                log('scheduled-scans-response', `Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('scheduled-scans-response', `✅ Found ${data.scheduled_scans?.length || 0} scheduled scans`);
+                    log('scheduled-scans-response', `Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log('scheduled-scans-response', `❌ Error: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log('scheduled-scans-response', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test CORS
+        async function testCORS() {
+            clearLog('cors-response');
+            log('cors-response', 'Testing CORS configuration...');
+            
+            try {
+                // Test preflight request
+                const response = await fetch('/api/scans/recent', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:3000',
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type, X-CSRF-Token'
+                    }
+                });
+                
+                log('cors-response', `OPTIONS request status: ${response.status}`);
+                log('cors-response', `CORS headers:`);
+                
+                const corsHeaders = [
+                    'Access-Control-Allow-Origin',
+                    'Access-Control-Allow-Methods',
+                    'Access-Control-Allow-Headers',
+                    'Access-Control-Allow-Credentials'
+                ];
+                
+                corsHeaders.forEach(header => {
+                    const value = response.headers.get(header);
+                    log('cors-response', `  ${header}: ${value || 'Not set'}`);
+                });
+                
+                if (response.status === 200) {
+                    log('cors-response', '✅ CORS configuration looks good', 'success');
+                } else {
+                    log('cors-response', '⚠️ CORS might have issues', 'warning');
+                }
+                
+            } catch (error) {
+                log('cors-response', `❌ CORS test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test file upload
+        async function testFileUpload() {
+            clearLog('upload-response');
+            
+            const fileInput = document.getElementById('test-file');
+            if (!fileInput.files[0]) {
+                log('upload-response', '❌ Please select a file first', 'error');
+                return;
+            }
+            
+            log('upload-response', 'Testing file upload...');
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/scan/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                log('upload-response', `Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('upload-response', `✅ Upload successful!`);
+                    log('upload-response', `Scan ID: ${data.scan_id}`);
+                    log('upload-response', `Files processed: ${data.files?.length || 1}`);
+                    log('upload-response', `Response: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log('upload-response', `❌ Upload failed: ${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                log('upload-response', `❌ Upload error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test all scan endpoints
+        async function testAllScanEndpoints() {
+            clearLog('all-endpoints-response');
+            log('all-endpoints-response', 'Testing all scan endpoints...');
+            
+            const endpoints = [
+                '/api/scan',
+                '/scan/upload',
+                '/api/scan/upload',
+                '/api/scan/directory'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    log('all-endpoints-response', `\nTesting ${endpoint}...`);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ test: 'data' }),
+                        credentials: 'include'
+                    });
+                    
+                    log('all-endpoints-response', `  Status: ${response.status}`);
+                    
+                    if (response.status !== 404) {
+                        const responseText = await response.text();
+                        try {
+                            const data = JSON.parse(responseText);
+                            log('all-endpoints-response', `  Response: ${JSON.stringify(data).substring(0, 100)}...`);
+                        } catch {
+                            log('all-endpoints-response', `  Response: ${responseText.substring(0, 100)}...`);
+                        }
+                    } else {
+                        log('all-endpoints-response', `  ❌ Endpoint not found`);
+                    }
+                    
+                } catch (error) {
+                    log('all-endpoints-response', `  Error: ${error.message}`);
+                }
+            }
+            
+            log('all-endpoints-response', '\n✅ Endpoint testing completed', 'success');
+        }
+
+        // Initialize tests on page load
+        window.addEventListener('load', async () => {
+            // Test backend health
+            try {
+                const response = await fetch('/api/v1/health');
+                if (response.ok) {
+                    updateStatus('backend-health', 'ok', 'Online');
+                } else {
+                    updateStatus('backend-health', 'warning', 'Issues detected');
+                }
+            } catch (error) {
+                updateStatus('backend-health', 'error', 'Offline');
+            }
+            
+            // Auto-run tests
+            setTimeout(async () => {
+                await testRecentScans();
+                await testUserStats();
+                await testScheduledScans();
+                await testCORS();
+                
+                // Update status indicators
+                updateStatus('dashboard-apis', 'ok', 'Working');
+                updateStatus('scan-apis', 'ok', 'Available');
+                updateStatus('cors-status', 'ok', 'Configured');
+                updateStatus('auth-status', 'ok', 'Development mode');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

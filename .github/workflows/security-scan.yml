@@ -1,0 +1,222 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install bandit safety pip-audit
+    
+    - name: Install Node.js dependencies
+      run: |
+        npm install
+        cd byteguardx-portal && npm install
+    
+    # Secret Scanning with TruffleHog
+    - name: Secret Scanning
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+    
+    # Python Security Scanning
+    - name: Run Bandit Security Scan
+      run: |
+        bandit -r byteguardx/ -f json -o bandit-report.json || true
+        bandit -r byteguardx/ -f txt
+    
+    - name: Run Safety Check
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+    
+    - name: Run pip-audit
+      run: |
+        pip-audit --format=json --output=pip-audit-report.json || true
+        pip-audit
+    
+    # Node.js Security Scanning
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=moderate --json > npm-audit-report.json || true
+        npm audit --audit-level=moderate
+    
+    - name: Run npm audit for portal
+      run: |
+        cd byteguardx-portal
+        npm audit --audit-level=moderate --json > ../npm-audit-portal-report.json || true
+        npm audit --audit-level=moderate
+    
+    # Docker Image Scanning with Trivy
+    - name: Build Docker image
+      run: |
+        docker build -t byteguardx:latest .
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'byteguardx:latest'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+    
+    # Code Quality and Security
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python, javascript
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+    
+    # Custom Security Tests
+    - name: Run Custom Security Test Suite
+      run: |
+        python security_test_suite.py
+      env:
+        TESTING: true
+        SECRET_KEY: test-secret-key-for-ci-only
+        JWT_SECRET: test-jwt-secret-for-ci-only
+    
+    # Upload Security Reports
+    - name: Upload Bandit results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: bandit-report.json
+    
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: trivy-results.sarif
+    
+    - name: Upload Trivy filesystem results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: trivy-fs-results.sarif
+    
+    # Archive security reports
+    - name: Archive security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+          pip-audit-report.json
+          npm-audit-report.json
+          npm-audit-portal-report.json
+          trivy-results.sarif
+          trivy-fs-results.sarif
+          security_test_report.txt
+    
+    # Fail on high severity vulnerabilities
+    - name: Check for critical vulnerabilities
+      run: |
+        python .github/scripts/check-vulnerabilities.py
+    
+    # Notify on security issues
+    - name: Notify on security issues
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: 'Security scan failed! Check the reports for details.'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: moderate
+        allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
+        deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0
+
+  license-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install license checker
+      run: |
+        pip install pip-licenses
+    
+    - name: Check Python licenses
+      run: |
+        pip install -r requirements.txt
+        pip-licenses --format=json --output-file=python-licenses.json
+        pip-licenses --fail-on='GPL;AGPL'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Check Node.js licenses
+      run: |
+        npm install
+        npx license-checker --json --out npm-licenses.json
+        npx license-checker --failOn 'GPL;AGPL'
+    
+    - name: Upload license reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-reports
+        path: |
+          python-licenses.json
+          npm-licenses.json

@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "ByteGuardX Security Scanner",
+  "version": "1.0.0",
+  "description": "Real-time security scanning for web-based code editors and repositories",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "background"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://gitlab.com/*",
+    "https://bitbucket.org/*",
+    "https://codepen.io/*",
+    "https://codesandbox.io/*",
+    "https://replit.com/*",
+    "https://stackblitz.com/*",
+    "http://localhost:*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*",
+        "https://gitlab.com/*",
+        "https://bitbucket.org/*",
+        "https://codepen.io/*",
+        "https://codesandbox.io/*",
+        "https://replit.com/*",
+        "https://stackblitz.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ByteGuardX Security Scanner",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "scanner.js",
+        "ui-components.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "options_page": "options.html"
+}

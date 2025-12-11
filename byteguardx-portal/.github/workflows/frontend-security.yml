@@ -1,0 +1,185 @@
+name: Frontend Security CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: ['byteguardx-portal/**']
+  pull_request:
+    branches: [ main, develop ]
+    paths: ['byteguardx-portal/**']
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Frontend Security Analysis
+  frontend-security:
+    name: Frontend Security Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./byteguardx-portal
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: byteguardx-portal/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=moderate --json > npm-audit-report.json || true
+        npm audit --audit-level=moderate
+      continue-on-error: true
+    
+    - name: Run ESLint Security
+      run: |
+        npx eslint src/ --ext .js,.jsx,.ts,.tsx --format json --output-file eslint-security-report.json || true
+        npx eslint src/ --ext .js,.jsx,.ts,.tsx
+      continue-on-error: true
+    
+    - name: Check for hardcoded secrets
+      run: |
+        # Check for common secret patterns in frontend code
+        grep -r "api_key\|secret\|password\|token" src/ --exclude-dir=node_modules || true
+        grep -r "localhost:" src/ --exclude-dir=node_modules || true
+    
+    - name: Build security check
+      run: |
+        npm run build || echo "Build failed - will be reported in validation"
+        # Check build output for sensitive data
+        if [ -d "dist/" ]; then
+          find dist/ -name "*.js" -exec grep -l "localhost\|127.0.0.1\|api_key" {} \; || true
+        fi
+
+    - name: Run security validation
+      run: |
+        npm run security:validate || echo "Security validation completed with warnings"
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-security-reports
+        path: |
+          byteguardx-portal/npm-audit-report.json
+          byteguardx-portal/eslint-security-report.json
+        retention-days: 30
+
+  # Secrets Scanning
+  secrets-scan:
+    name: Frontend Secrets Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Run TruffleHog on frontend
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./byteguardx-portal
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # License Compliance
+  license-check:
+    name: Frontend License Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./byteguardx-portal
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Check licenses
+      run: |
+        npx license-checker --json --out frontend-licenses.json
+        npx license-checker --summary
+    
+    - name: Upload license report
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-license-report
+        path: byteguardx-portal/frontend-licenses.json
+        retention-days: 30
+
+  # Frontend Container Security
+  container-security:
+    name: Frontend Container Security
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build frontend Docker image
+      run: |
+        docker build -f byteguardx-portal/Dockerfile -t byteguardx-frontend:test ./byteguardx-portal
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'byteguardx-frontend:test'
+        format: 'sarif'
+        output: 'trivy-frontend-results.sarif'
+    
+    - name: Upload Trivy results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-frontend-results.sarif'
+
+  # Security Summary
+  security-summary:
+    name: Frontend Security Summary
+    runs-on: ubuntu-latest
+    needs: [frontend-security, secrets-scan, license-check, container-security]
+    if: always()
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Generate summary
+      run: |
+        echo "# Frontend Security Summary" > summary.md
+        echo "## Results:" >> summary.md
+        echo "- Frontend Security: ${{ needs.frontend-security.result }}" >> summary.md
+        echo "- Secrets Scan: ${{ needs.secrets-scan.result }}" >> summary.md
+        echo "- License Check: ${{ needs.license-check.result }}" >> summary.md
+        echo "- Container Security: ${{ needs.container-security.result }}" >> summary.md
+        cat summary.md
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('summary.md', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });

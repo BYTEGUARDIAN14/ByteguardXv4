@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-07-14T09:29:26.916Z",
+  "summary": {
+    "errors": 1,
+    "warnings": 3,
+    "passed": 8,
+    "total": 12
+  },
+  "details": {
+    "errors": [
+      "Build failed: Command failed: npm run build"
+    ],
+    "warnings": [
+      "npm audit failed or returned non-zero exit code",
+      "ESLint security check found issues",
+      "Potential secret pattern found in: src\\pages\\Docs.tsx"
+    ],
+    "passed": [
+      "Security file exists: .eslintrc.security.cjs",
+      "Security file exists: security.config.js",
+      "Security file exists: vite.config.security.ts",
+      "Security file exists: package.security.json",
+      "Security script found: security:audit",
+      "Security script found: security:lint",
+      "Security script found: security:test",
+      "Node.js version constraint: >=18.0.0"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "byteguardx-official": {
+    "signer_id": "byteguardx-official",
+    "name": "ByteGuardX Official",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApXueKaMyO0VuOemoNlS9\nAk6mpU3F9QPGdtPpLXq0eaXLqDAZKy6Yqf48GEaSz5Z3dfn2Da0VUtdMp0haglBB\nw5xJDnIJfpx3ErmtWP6cGH/BoULIfd1lgIx7FeWVIfLmZq/r/Ikh59tluIXCjVEE\nMqs6uwSBohnKBLHxlQrbWtW+LUjSM5eVw1enTEDsKQUQ6FR0i6MvC33Nn4vitpcB\nE1GAzir7j2XERg/E+T8k/yvjJaMJbQ1FbdVtQIaMJUgP0fNxxWeOTAb519dvo/pt\nEKM+p/+qA5LGzc/JxqFYKq86eGrPUepIQsJfki9zK3T4AWJTHEy5VmtakGE1vL2D\nwwIDAQAB\n-----END PUBLIC KEY-----\n",
+    "trusted_since": "2025-07-09T23:07:34.796717",
+    "expires_at": null,
+    "revoked": false,
+    "permissions": [
+      "plugin:sign",
+      "plugin:distribute"
+    ]
+  }
+}

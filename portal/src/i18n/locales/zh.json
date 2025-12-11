@@ -1,0 +1,220 @@
+{
+  "navigation": {
+    "home": "首页",
+    "features": "功能",
+    "pricing": "定价",
+    "download": "下载",
+    "extensions": "扩展",
+    "docs": "文档",
+    "support": "支持",
+    "login": "登录",
+    "signup": "注册",
+    "dashboard": "仪表板"
+  },
+  "hero": {
+    "title": "代码安全的未来",
+    "subtitle": "AI驱动的漏洞检测，在应用程序投入生产之前保护您的应用程序",
+    "cta_primary": "开始免费试用",
+    "cta_secondary": "观看演示",
+    "trusted_by": "受到以下开发者信任"
+  },
+  "features": {
+    "title": "强大的安全功能",
+    "subtitle": "全面的代码安全解决方案",
+    "ai_powered": {
+      "title": "AI驱动检测",
+      "description": "先进的机器学习模型识别安全漏洞，准确率高，误报率低。"
+    },
+    "offline_first": {
+      "title": "离线优先安全",
+      "description": "完整的隐私保护 - 不向外部服务发送数据。所有扫描都在您的机器上本地进行。"
+    },
+    "lightning_fast": {
+      "title": "闪电般快速",
+      "description": "优化的扫描引擎每秒处理数千个文件，具有智能缓存和并行处理。"
+    },
+    "comprehensive": {
+      "title": "全面覆盖",
+      "description": "检测秘密、CVE、AI模式、依赖漏洞和50多种语言的自定义安全规则。"
+    }
+  },
+  "pricing": {
+    "title": "选择您的计划",
+    "subtitle": "适合各种规模团队的灵活定价",
+    "free": {
+      "title": "免费",
+      "price": "¥0",
+      "period": "/月",
+      "description": "适合个人开发者",
+      "features": [
+        "每月100次扫描",
+        "基本漏洞检测",
+        "标准报告",
+        "社区支持"
+      ],
+      "cta": "开始使用"
+    },
+    "pro": {
+      "title": "专业版",
+      "price": "¥299",
+      "period": "/月",
+      "description": "适合小团队",
+      "features": [
+        "无限扫描",
+        "高级AI检测",
+        "详细报告",
+        "优先支持",
+        "API访问"
+      ],
+      "cta": "开始试用"
+    },
+    "enterprise": {
+      "title": "企业版",
+      "price": "自定义",
+      "period": "",
+      "description": "适合大型组织",
+      "features": [
+        "所有专业版功能",
+        "SSO集成",
+        "合规报告",
+        "专属支持",
+        "本地部署"
+      ],
+      "cta": "联系销售"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "登录",
+      "subtitle": "欢迎回到ByteGuardX",
+      "email": "邮箱",
+      "password": "密码",
+      "remember_me": "记住我",
+      "forgot_password": "忘记密码？",
+      "sign_in": "登录",
+      "no_account": "没有账户？",
+      "sign_up": "注册"
+    },
+    "signup": {
+      "title": "创建账户",
+      "subtitle": "加入数千名开发者保护他们的代码",
+      "first_name": "名字",
+      "last_name": "姓氏",
+      "email": "邮箱",
+      "password": "密码",
+      "confirm_password": "确认密码",
+      "terms": "我同意服务条款和隐私政策",
+      "create_account": "创建账户",
+      "have_account": "已有账户？",
+      "sign_in": "登录"
+    }
+  },
+  "dashboard": {
+    "welcome": "欢迎回来",
+    "overview": "概览",
+    "recent_scans": "最近扫描",
+    "security_score": "安全评分",
+    "vulnerabilities_found": "发现漏洞",
+    "files_scanned": "扫描文件",
+    "scan_now": "立即扫描",
+    "view_reports": "查看报告",
+    "settings": "设置"
+  },
+  "scan": {
+    "title": "扫描您的代码",
+    "upload_files": "上传文件",
+    "drag_drop": "拖拽文件到此处或点击选择",
+    "supported_formats": "支持的格式",
+    "start_scan": "开始扫描",
+    "scanning": "扫描中...",
+    "scan_complete": "扫描完成",
+    "results": "结果",
+    "no_issues": "未发现问题",
+    "issues_found": "发现问题"
+  },
+  "reports": {
+    "title": "安全报告",
+    "generate_report": "生成报告",
+    "download_pdf": "下载PDF",
+    "export_json": "导出JSON",
+    "executive_summary": "执行摘要",
+    "technical_details": "技术详情",
+    "recommendations": "建议"
+  },
+  "settings": {
+    "title": "设置",
+    "profile": "个人资料",
+    "security": "安全",
+    "notifications": "通知",
+    "integrations": "集成",
+    "billing": "账单",
+    "save_changes": "保存更改"
+  },
+  "footer": {
+    "company": "公司",
+    "about": "关于我们",
+    "careers": "招聘",
+    "contact": "联系我们",
+    "product": "产品",
+    "features": "功能",
+    "pricing": "定价",
+    "security": "安全",
+    "resources": "资源",
+    "documentation": "文档",
+    "blog": "博客",
+    "community": "社区",
+    "legal": "法律",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "cookies": "Cookie政策"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "download": "下载",
+    "upload": "上传",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "next": "下一步",
+    "previous": "上一步",
+    "close": "关闭",
+    "open": "打开"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "欢迎使用ByteGuardX",
+      "description": "最先进的AI驱动代码安全平台。让我们快速了解一下主要功能。",
+      "highlight": "准备好革新您的代码安全！"
+    },
+    "scan_now": {
+      "title": "开始您的第一次扫描",
+      "description": "上传您的代码或连接您的仓库，开始扫描漏洞、秘密和安全问题。",
+      "highlight": "在30秒内扫描您的第一个项目"
+    },
+    "schedule": {
+      "title": "安排定期扫描",
+      "description": "设置自动扫描以持续监控您的代码库的安全问题。",
+      "highlight": "自动化您的安全工作流程"
+    },
+    "download": {
+      "title": "下载桌面应用",
+      "description": "获取我们的桌面应用程序，实现无缝的离线扫描和高级功能。",
+      "highlight": "随时随地保护您的代码"
+    },
+    "complete": {
+      "title": "您已准备就绪！",
+      "description": "您现在拥有使用ByteGuardX保护代码所需的一切。开始探索并构建更安全的应用程序。",
+      "highlight": "欢迎来到代码安全的未来！"
+    }
+  }
+}

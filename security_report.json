@@ -1,0 +1,11 @@
+{
+  "report_id": "BGX_REPORT_20250716_165114",
+  "status": "error",
+  "error_message": "'RealSecurityReportGenerator' object has no attribute '_calculate_remediation_time'",
+  "generated_at": "2025-07-16T16:51:14.941396",
+  "recommendations": [
+    "Check scan configuration",
+    "Verify input files",
+    "Contact support"
+  ]
+}

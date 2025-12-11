@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByteGuardX Connection Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #00bcd4;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #334155;
+            border-radius: 8px;
+            border-left: 4px solid #00bcd4;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #10b981; color: white; }
+        .status.error { background: #ef4444; color: white; }
+        .status.loading { background: #f59e0b; color: white; }
+        button {
+            background: #00bcd4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0891b2; }
+        .response {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ ByteGuardX Connection Test</h1>
+        
+        <div class="test-section">
+            <h3>Frontend Server <span id="frontend-status" class="status loading">Testing...</span></h3>
+            <p>Testing frontend server at: <strong>http://localhost:3000</strong></p>
+            <button onclick="testFrontend()">Test Frontend</button>
+            <div id="frontend-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Backend API <span id="backend-status" class="status loading">Testing...</span></h3>
+            <p>Testing backend API at: <strong>http://localhost:5000</strong></p>
+            <button onclick="testBackend()">Test Backend Health</button>
+            <div id="backend-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>API Endpoints <span id="api-status" class="status loading">Ready</span></h3>
+            <p>Test various API endpoints:</p>
+            <button onclick="testEndpoint('/health')">Health Check</button>
+            <button onclick="testEndpoint('/api/v1/health')">API Health</button>
+            <button onclick="testEndpoint('/api/dashboard/stats')">Dashboard Stats</button>
+            <div id="api-response" class="response"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>System Status</h3>
+            <div id="system-status">
+                <p><strong>Frontend:</strong> <span id="fe-status">Checking...</span></p>
+                <p><strong>Backend:</strong> <span id="be-status">Checking...</span></p>
+                <p><strong>Overall:</strong> <span id="overall-status">Checking...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test frontend server
+        async function testFrontend() {
+            const statusEl = document.getElementById('frontend-status');
+            const responseEl = document.getElementById('frontend-response');
+            
+            statusEl.textContent = 'Testing...';
+            statusEl.className = 'status loading';
+            
+            try {
+                const response = await fetch('http://localhost:3000');
+                const text = await response.text();
+                
+                statusEl.textContent = 'Online';
+                statusEl.className = 'status success';
+                responseEl.textContent = `Status: ${response.status}\nContent-Type: ${response.headers.get('content-type')}\nResponse length: ${text.length} characters`;
+                
+                document.getElementById('fe-status').textContent = '✅ Online';
+            } catch (error) {
+                statusEl.textContent = 'Error';
+                statusEl.className = 'status error';
+                responseEl.textContent = `Error: ${error.message}`;
+                
+                document.getElementById('fe-status').textContent = '❌ Offline';
+            }
+            
+            updateOverallStatus();
+        }
+
+        // Test backend server
+        async function testBackend() {
+            const statusEl = document.getElementById('backend-status');
+            const responseEl = document.getElementById('backend-response');
+            
+            statusEl.textContent = 'Testing...';
+            statusEl.className = 'status loading';
+            
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                const data = await response.json();
+                
+                statusEl.textContent = 'Online';
+                statusEl.className = 'status success';
+                responseEl.textContent = JSON.stringify(data, null, 2);
+                
+                document.getElementById('be-status').textContent = '✅ Online';
+            } catch (error) {
+                statusEl.textContent = 'Error';
+                statusEl.className = 'status error';
+                responseEl.textContent = `Error: ${error.message}`;
+                
+                document.getElementById('be-status').textContent = '❌ Offline';
+            }
+            
+            updateOverallStatus();
+        }
+
+        // Test specific endpoint
+        async function testEndpoint(endpoint) {
+            const statusEl = document.getElementById('api-status');
+            const responseEl = document.getElementById('api-response');
+            
+            statusEl.textContent = 'Testing...';
+            statusEl.className = 'status loading';
+            
+            try {
+                const response = await fetch(`http://localhost:5000${endpoint}`);
+                const data = await response.json();
+                
+                statusEl.textContent = 'Success';
+                statusEl.className = 'status success';
+                responseEl.textContent = `Endpoint: ${endpoint}\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                statusEl.textContent = 'Error';
+                statusEl.className = 'status error';
+                responseEl.textContent = `Endpoint: ${endpoint}\nError: ${error.message}`;
+            }
+        }
+
+        // Update overall status
+        function updateOverallStatus() {
+            const feStatus = document.getElementById('fe-status').textContent;
+            const beStatus = document.getElementById('be-status').textContent;
+            const overallEl = document.getElementById('overall-status');
+            
+            if (feStatus.includes('✅') && beStatus.includes('✅')) {
+                overallEl.textContent = '✅ All Systems Operational';
+                overallEl.style.color = '#10b981';
+            } else if (feStatus.includes('❌') || beStatus.includes('❌')) {
+                overallEl.textContent = '❌ System Issues Detected';
+                overallEl.style.color = '#ef4444';
+            } else {
+                overallEl.textContent = '⏳ Checking...';
+                overallEl.style.color = '#f59e0b';
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            setTimeout(() => {
+                testFrontend();
+                testBackend();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
