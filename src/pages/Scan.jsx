@@ -104,7 +104,7 @@ const Scan = () => {
 
       // Start comprehensive scan
       setScanProgress({ stage: 'scanning', progress: 0 })
-      
+
       let scanResponse
       if (scanMode === 'directory') {
         scanResponse = await scanService.scanDirectory(directoryPath)
@@ -115,7 +115,7 @@ const Scan = () => {
 
       setScanProgress({ stage: 'scanning', progress: 100 })
       setScanResults(scanResponse)
-      
+
       toast.success(`Scan completed! Found ${scanResponse.total_findings} issues`)
 
       // Navigate to report page with scan results
@@ -125,9 +125,18 @@ const Scan = () => {
         }, 2000)
       }
 
+
     } catch (error) {
       console.error('Scan error:', error)
-      toast.error(error.message || 'Scan failed. Please try again.')
+      let errorMessage = error.message || 'Scan failed. Please try again.'
+
+      // Handle timeout errors specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage = 'The scan timed out. The file might be too large or complex.'
+      }
+
+      toast.error(errorMessage)
+      setScanResults(null)
     } finally {
       setIsScanning(false)
       setScanProgress(null)
@@ -137,8 +146,8 @@ const Scan = () => {
   const getScanTypeIcon = (type) => {
     switch (type) {
       case 'secrets': return Shield
-      case 'dependencies': return Bug
-      case 'aiPatterns': return Cpu
+      case 'dependencies': return Zap
+      case 'aiPatterns': return Lock
       default: return Shield
     }
   }

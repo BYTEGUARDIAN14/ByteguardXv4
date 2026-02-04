@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Play,
@@ -43,6 +44,7 @@ const UPLOAD_CONSTANTS = {
 };
 
 const EnhancedScanInterface = () => {
+  const navigate = useNavigate();
   const [scanConfig, setScanConfig] = useState({
     mode: 'comprehensive',
     enablePlugins: true,
@@ -361,6 +363,22 @@ const EnhancedScanInterface = () => {
     setIsScanning(true);
     setScanResults(null);
     setUploadProgress(0);
+    // Start proper progress simulation
+    let progressInterval;
+    let currentProgress = 0;
+
+    // Reset any previous progress
+    setUploadProgress(0);
+
+    // Animate progress 0-90%
+    progressInterval = setInterval(() => {
+      currentProgress += Math.random() * 5;
+      if (currentProgress > 90) {
+        currentProgress = 90;
+        clearInterval(progressInterval);
+      }
+      setUploadProgress(Math.min(90, Math.round(currentProgress)));
+    }, 500);
 
     try {
       const formData = new FormData();
@@ -398,15 +416,21 @@ const EnhancedScanInterface = () => {
       // Use appropriate endpoint based on upload type
       const endpoint = uploadedFiles && uploadedFiles.length > 1 ? '/api/scan/folder' : '/api/scan/file';
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort('Scan timed out after 15 minutes'), 900000); // 15 minute timeout for scans
+
       const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
         credentials: 'include',
+        signal: controller.signal,
         headers: {
           'X-Requested-With': 'XMLHttpRequest'
           // Don't set Content-Type for FormData, let browser set it with boundary
         }
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const results = await response.json();
@@ -420,6 +444,10 @@ const EnhancedScanInterface = () => {
           if (results.summary) {
             console.log(`${summary}. Found ${results.summary.total_issues || 0} issues.`);
           }
+
+          // Redirect to report page
+          navigate(`/report/${results.scan_id}`, { state: { scanResults: results } });
+
         } else {
           throw new Error('Invalid response format');
         }
@@ -429,9 +457,15 @@ const EnhancedScanInterface = () => {
       }
     } catch (error) {
       console.error('Scan error:', error);
-      const errorMessage = error.message || 'Scan failed. Please try again.';
+      let errorMessage = error.message || 'Scan failed. Please try again.';
+
+      if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('aborted')) {
+        errorMessage = 'Scan timed out. The file might be too large or complex. Try uploading smaller batches.';
+      }
+
       alert(errorMessage);
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setIsScanning(false);
       setUploadProgress(100);
     }
@@ -456,7 +490,7 @@ const EnhancedScanInterface = () => {
           </label>
           <select
             value={scanConfig.mode}
-            onChange={(e) => setScanConfig({...scanConfig, mode: e.target.value})}
+            onChange={(e) => setScanConfig({ ...scanConfig, mode: e.target.value })}
             className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="static">Static Analysis</option>
@@ -478,7 +512,7 @@ const EnhancedScanInterface = () => {
             max="1.0"
             step="0.1"
             value={scanConfig.confidenceThreshold}
-            onChange={(e) => setScanConfig({...scanConfig, confidenceThreshold: parseFloat(e.target.value)})}
+            onChange={(e) => setScanConfig({ ...scanConfig, confidenceThreshold: parseFloat(e.target.value) })}
             className="w-full"
           />
           <div className="text-xs text-gray-400 mt-1">
@@ -495,7 +529,7 @@ const EnhancedScanInterface = () => {
             <input
               type="checkbox"
               checked={scanConfig.enablePlugins}
-              onChange={(e) => setScanConfig({...scanConfig, enablePlugins: e.target.checked})}
+              onChange={(e) => setScanConfig({ ...scanConfig, enablePlugins: e.target.checked })}
               className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
             />
             <span className="text-white">Enable Plugins</span>
@@ -511,7 +545,7 @@ const EnhancedScanInterface = () => {
             <input
               type="checkbox"
               checked={scanConfig.enableML}
-              onChange={(e) => setScanConfig({...scanConfig, enableML: e.target.checked})}
+              onChange={(e) => setScanConfig({ ...scanConfig, enableML: e.target.checked })}
               className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
             />
             <span className="text-white">Enable ML</span>
@@ -583,21 +617,19 @@ const EnhancedScanInterface = () => {
       <div className="flex space-x-4 mb-4">
         <button
           onClick={() => setUploadMode('file')}
-          className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-            uploadMode === 'file'
-              ? 'bg-cyan-600 text-white'
-              : 'bg-white/10 text-gray-300 hover:bg-white/20'
-          }`}
+          className={`px-4 py-2 rounded-lg transition-all duration-200 ${uploadMode === 'file'
+            ? 'bg-cyan-600 text-white'
+            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
         >
           Single File
         </button>
         <button
           onClick={() => setUploadMode('folder')}
-          className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-            uploadMode === 'folder'
-              ? 'bg-cyan-600 text-white'
-              : 'bg-white/10 text-gray-300 hover:bg-white/20'
-          }`}
+          className={`px-4 py-2 rounded-lg transition-all duration-200 ${uploadMode === 'folder'
+            ? 'bg-cyan-600 text-white'
+            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
         >
           Folder/Multiple Files
         </button>
@@ -741,16 +773,15 @@ const EnhancedScanInterface = () => {
           <Zap className="w-5 h-5 mr-2 text-cyan-400" />
           Scan Controls
         </h3>
-        
+
         <div className="flex items-center space-x-3">
           <motion.button
             onClick={startScan}
             disabled={(!uploadedFile && (!uploadedFiles || uploadedFiles.length === 0)) || isScanning}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              (!uploadedFile && (!uploadedFiles || uploadedFiles.length === 0)) || isScanning
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
-            }`}
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${(!uploadedFile && (!uploadedFiles || uploadedFiles.length === 0)) || isScanning
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
+              }`}
             whileHover={(!uploadedFile && (!uploadedFiles || uploadedFiles.length === 0)) || isScanning ? {} : { scale: 1.02 }}
             whileTap={!uploadedFile || isScanning ? {} : { scale: 0.98 }}
           >
@@ -773,10 +804,10 @@ const EnhancedScanInterface = () => {
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm text-gray-400 mb-2">
             <span>Scanning with {scanConfig.enablePlugins ? '22+' : '4'} scanners...</span>
-            <span>Progress: 45%</span>
+            <span>Progress: {Math.round(uploadProgress)}%</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
-            <div className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full animate-pulse" style={{width: '45%'}} />
+            <div className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
           </div>
         </div>
       )}
@@ -840,12 +871,11 @@ const EnhancedScanInterface = () => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      finding.severity === 'critical' ? 'bg-red-400' :
+                    <div className={`w-2 h-2 rounded-full ${finding.severity === 'critical' ? 'bg-red-400' :
                       finding.severity === 'high' ? 'bg-orange-400' :
-                      finding.severity === 'medium' ? 'bg-yellow-400' :
-                      'bg-blue-400'
-                    }`} />
+                        finding.severity === 'medium' ? 'bg-yellow-400' :
+                          'bg-blue-400'
+                      }`} />
                     <span className="text-white font-medium">{finding.title}</span>
                     {finding.scanner_name && (
                       <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded">

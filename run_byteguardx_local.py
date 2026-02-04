@@ -102,14 +102,22 @@ class ByteGuardXRunner:
         """Install Node.js dependencies"""
         print(f"{Colors.OKBLUE}[4/7] Installing Node.js dependencies...{Colors.ENDC}")
         
+        npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
+        
         try:
-            subprocess.run(['npm', 'install'], check=True, capture_output=True)
+            print(f"   Executing: {npm_cmd} install")
+            subprocess.run([npm_cmd, 'install'], check=True, capture_output=True)
             print(f"{Colors.OKGREEN}✅ Node.js dependencies installed{Colors.ENDC}")
             return True
             
         except subprocess.CalledProcessError as e:
             print(f"{Colors.FAIL}❌ Failed to install Node.js dependencies: {e}{Colors.ENDC}")
+            if e.stderr:
+                print(f"{Colors.FAIL}Error details: {e.stderr.decode()}{Colors.ENDC}")
             return False
+        except FileNotFoundError:
+             print(f"{Colors.FAIL}❌ Command not found: {npm_cmd}. Ensure npm is in your PATH.{Colors.ENDC}")
+             return False
     
     def setup_environment(self):
         """Set up environment variables"""
@@ -155,6 +163,11 @@ class ByteGuardXRunner:
                     time.sleep(2)
             
             print(f"{Colors.FAIL}❌ Backend failed to start within timeout{Colors.ENDC}")
+            # Print stderr to see why it failed
+            if self.backend_process.poll() is not None:
+                 stdout, stderr = self.backend_process.communicate()
+                 print(f"Backend Output:\n{stdout}")
+                 print(f"Backend Error:\n{stderr}")
             return False
             
         except Exception as e:
@@ -165,10 +178,12 @@ class ByteGuardXRunner:
         """Start the frontend server"""
         print(f"{Colors.OKBLUE}[7/7] Starting Frontend Development Server...{Colors.ENDC}")
         
+        npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
+        
         try:
             # Start frontend process
             self.frontend_process = subprocess.Popen([
-                'npm', 'run', 'dev'
+                npm_cmd, 'run', 'dev'
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             
             # Wait for frontend to be ready
@@ -224,12 +239,25 @@ class ByteGuardXRunner:
                 # Check backend process
                 if self.backend_process and self.backend_process.poll() is not None:
                     print(f"{Colors.FAIL}❌ Backend process died unexpectedly{Colors.ENDC}")
+                    stdout, stderr = self.backend_process.communicate()
+                    print(f"Back Output: {stdout}")
+                    print(f"Back Error: {stderr}")
                     self.cleanup()
                     break
                 
                 # Check frontend process
                 if self.frontend_process and self.frontend_process.poll() is not None:
                     print(f"{Colors.FAIL}❌ Frontend process died unexpectedly{Colors.ENDC}")
+                    stdout, stderr = self.frontend_process.communicate()
+                    print(f"Front Output: {stdout}")
+                    try:
+                         # Sometimes communicate() returns bytes causing issues if not handled
+                         if isinstance(stderr, bytes):
+                             print(f"Front Error: {stderr.decode()}")
+                         else:
+                             print(f"Front Error: {stderr}")
+                    except:
+                         print(f"Front Error: {stderr}")
                     self.cleanup()
                     break
                 

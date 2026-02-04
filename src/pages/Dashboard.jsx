@@ -237,7 +237,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen text-white relative">
+    <div className="min-h-screen bg-neutral-950 text-white">
 
       <Sidebar
         isCollapsed={sidebarCollapsed}
@@ -262,11 +262,11 @@ const Dashboard = () => {
             animate="visible"
           >
             <motion.div variants={staggerItem}>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome back, {user?.username}!
+              <h1 className="text-2xl font-semibold text-white mb-1">
+                Security Dashboard
               </h1>
-              <p className="text-gray-400">
-                Here's your security overview for today
+              <p className="text-neutral-400 text-sm">
+                Your local security overview
               </p>
             </motion.div>
           </motion.div>

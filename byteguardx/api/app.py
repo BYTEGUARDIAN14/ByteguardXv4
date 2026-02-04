@@ -8,6 +8,7 @@ import uuid
 import logging
 import tempfile
 from datetime import datetime, timedelta
+import concurrent.futures
 from pathlib import Path
 from typing import Dict, List, Any
 
@@ -376,6 +377,130 @@ def create_app(config=None):
     def working_scan_file():
         """Enhanced file scanning endpoint - working version"""
         try:
+            # Handle multipart/form-data for file uploads
+            if request.content_type and 'multipart/form-data' in request.content_type:
+                logger.info(f"Scan file request (multipart) - Files: {list(request.files.keys())}")
+                
+                if 'files' not in request.files and 'file' not in request.files:
+                    return jsonify({'error': 'No file provided'}), 400
+                
+                file = request.files.get('file') or request.files.get('files')
+                if not file or file.filename == '':
+                    return jsonify({'error': 'No file selected'}), 400
+
+                # Validate file size
+                file.seek(0, os.SEEK_END)
+                file_length = file.tell()
+                file.seek(0)
+                
+                if file_length > 500 * 1024 * 1024:  # 500MB limit per file
+                    return jsonify({'error': 'File too large (max 500MB)'}), 400
+
+                # Generate scan ID
+                scan_id = str(uuid.uuid4())
+                
+                # Create a temporary file to scan
+                temp_dir = tempfile.mkdtemp()
+                file_path = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(file_path)
+                
+                # Perform the scan using the unified scanner
+                from ..core.unified_scanner import UnifiedScanner, ScanContext, ScanMode
+                from ..core.file_processor import FileProcessor
+                
+                scanner = UnifiedScanner()
+                
+                # Create scan context
+                content = ""
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    # Binary file fallback
+                    content = "[Binary Content]"
+                
+                scan_context = ScanContext(
+                    file_path=file.filename,
+                    content=content,
+                    language=FileProcessor.detect_language(file.filename),
+                    file_size=file_length,
+                    scan_mode=ScanMode.COMPREHENSIVE,
+                    enable_ml=True,
+                    enable_plugins=True
+                )
+                
+                # Execute scan
+                findings = scanner.scan_content(scan_context)
+                
+                # Cleanup
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
+                
+                # Convert findings to dicts for JSON response
+                findings_list = [scanner._finding_to_dict(f) for f in findings]
+                
+                # Calculate detailed summary matching frontend requirements
+                summary = {
+                    'secrets': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                    'dependencies': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                    'ai_patterns': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}}
+                }
+                
+                total_fixes = 0
+                fixes_list = []
+                
+                for f in findings:
+                    severity = f.severity.lower() if hasattr(f, 'severity') else 'low'
+                    f_type = f.type
+                    
+                    # Map backend types to frontend summary keys
+                    summary_key = 'ai_patterns'
+                    if f_type == 'secret': summary_key = 'secrets'
+                    elif f_type == 'dependency': summary_key = 'dependencies'
+                    elif f_type == 'ai_pattern': summary_key = 'ai_patterns'
+                    
+                    if summary_key in summary:
+                        summary[summary_key]['total'] += 1
+                        if severity in summary[summary_key]['by_severity']:
+                             summary[summary_key]['by_severity'][severity] += 1
+                             
+                    # Check for fixes
+                    if hasattr(f, 'fix_suggestion') and f.fix_suggestion:
+                        total_fixes += 1
+                        fixes_list.append({
+                             'vulnerability_type': f.subtype,
+                             'original_code': f.context,
+                             'fixed_code': f.fix_suggestion,
+                             'explanation': f.description,
+                             'confidence': f.confidence,
+                             'file_path': f.file_path,
+                             'line_number': f.line_number
+                        })
+                
+                result = {
+                    'status': 'success',
+                    'scan_id': scan_id,
+                    'timestamp': datetime.now().isoformat(),
+                    'total_files': 1,
+                    'total_findings': len(findings),
+                    'total_fixes': len(fixes_list),
+                    'findings': findings_list,
+                    'fixes': fixes_list,
+                    'summary': summary,
+                    'scan_info': {
+                        'file_path': file.filename,
+                        'total_findings': len(findings)
+                    }
+                }
+                
+                # Store result
+                app.config['SCAN_RESULTS'][scan_id] = result
+                
+                return jsonify(result)
+                
+            # Handle JSON payload (legacy/text scan)
             data = request.get_json()
             if not data:
                 return jsonify({'error': 'No data provided'}), 400
@@ -386,7 +511,7 @@ def create_app(config=None):
             if not content:
                 return jsonify({'error': 'No content to scan'}), 400
 
-            # Simple mock scan for now - can be enhanced later
+            # Simple mock scan for JSON input
             findings = []
             if 'password' in content.lower():
                 findings.append({
@@ -400,25 +525,154 @@ def create_app(config=None):
                     'scanner_name': 'basic_scanner'
                 })
 
-            severity_counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
-            for finding in findings:
-                if finding['severity'] in severity_counts:
-                    severity_counts[finding['severity']] += 1
+                # Store result
+                app.config['SCAN_RESULTS'][scan_id] = result
+                
+                return jsonify(result)
 
-            return jsonify({
-                'status': 'success',
-                'findings': findings,
-                'summary': severity_counts,
-                'scan_info': {
-                    'file_path': file_path,
-                    'total_findings': len(findings)
-                }
-            })
         except Exception as e:
+            logger.error(f"Scan file error: {e}")
             return jsonify({
                 'error': 'Scan failed',
                 'details': str(e)
             }), 500
+
+    @app.route('/api/scan/folder', methods=['POST'])
+    def scan_folder():
+        """Folder scanning endpoint handling multiple files"""
+        try:
+            if 'files' not in request.files:
+                return jsonify({'error': 'No files provided'}), 400
+                
+            uploaded_files = request.files.getlist('files')
+            if not uploaded_files:
+                return jsonify({'error': 'No valid files provided'}), 400
+                
+            scan_id = str(uuid.uuid4())
+            temp_dir = tempfile.mkdtemp()
+            
+            # Save all files maintaining structure if possible (flattened for now for simplicity)
+            saved_files = []
+            for file in uploaded_files:
+                if file.filename:
+                    safe_name = secure_filename(file.filename)
+                    file_path = os.path.join(temp_dir, safe_name)
+                    file.save(file_path)
+                    saved_files.append(file_path)
+            
+            # Perform directory scan logic 
+            # (Here we iterate and scan files individually then aggregate)
+            from ..core.unified_scanner import UnifiedScanner, ScanContext, ScanMode
+            from ..core.file_processor import FileProcessor
+            
+            scanner = UnifiedScanner()
+            all_findings_objects = []
+            
+            # Helper function for parallel scanning
+            def process_single_file(f_path):
+                try:
+                    c = ""
+                    # Re-detect language per file in worker
+                    from ..core.file_processor import FileProcessor
+                    lang = FileProcessor.detect_language(f_path)
+                    
+                    with open(f_path, 'r', encoding='utf-8') as f:
+                        c = f.read()
+                        
+                    ctx = ScanContext(
+                        file_path=os.path.basename(f_path),
+                        content=c,
+                        language=lang,
+                        file_size=os.path.getsize(f_path),
+                        scan_mode=ScanMode.COMPREHENSIVE
+                    )
+                    return scanner.scan_content(ctx)
+                except Exception as ex:
+                    logger.error(f"Worker error scanning {f_path}: {ex}")
+                    return []
+
+            # Execute scans in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(saved_files))) as executor:
+                future_to_file = {executor.submit(process_single_file, fp): fp for fp in saved_files}
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_findings = future.result()
+                    all_findings_objects.extend(file_findings)
+
+            # Cleanup
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+                
+            # Calculate detailed summary matching frontend requirements
+            summary = {
+                'secrets': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                'dependencies': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                'ai_patterns': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}}
+            }
+            
+            total_fixes = 0
+            fixes_list = []
+            findings_dicts = []
+            
+            for f in all_findings_objects:
+                # Create dict repr
+                findings_dicts.append(scanner._finding_to_dict(f))
+                
+                # Update summary
+                severity = f.severity.lower() if hasattr(f, 'severity') else 'low'
+                f_type = f.type
+                
+                # Map backend types to frontend summary keys
+                summary_key = 'ai_patterns'
+                if f_type == 'secret': summary_key = 'secrets'
+                elif f_type == 'dependency': summary_key = 'dependencies'
+                elif f_type == 'ai_pattern': summary_key = 'ai_patterns'
+                
+                if summary_key in summary:
+                    summary[summary_key]['total'] += 1
+                    if severity in summary[summary_key]['by_severity']:
+                            summary[summary_key]['by_severity'][severity] += 1
+                            
+                # Check for fixes
+                if hasattr(f, 'fix_suggestion') and f.fix_suggestion:
+                    total_fixes += 1
+                    fixes_list.append({
+                            'vulnerability_type': f.subtype,
+                            'original_code': f.context,
+                            'fixed_code': f.fix_suggestion,
+                            'explanation': f.description,
+                            'confidence': f.confidence,
+                            'file_path': f.file_path,
+                            'line_number': f.line_number
+                    })
+            
+            result = {
+                'status': 'success',
+                'scan_id': scan_id,
+                'timestamp': datetime.now().isoformat(),
+                'total_files': len(saved_files),
+                'total_findings': len(all_findings_objects),
+                'total_fixes': total_fixes,
+                'findings': findings_dicts,
+                'fixes': fixes_list,
+                'summary': summary,
+                'scan_info': {
+                    'total_files': len(saved_files),
+                    'total_findings': len(all_findings_objects)
+                }
+            }
+            
+            app.config['SCAN_RESULTS'][scan_id] = result
+            return jsonify(result)
+
+            
+        except Exception as e:
+            return jsonify({
+                'error': 'Folder scan failed', 
+                'details': str(e)
+            }), 500
+
 
     # Initialize scan results storage (in-memory for development)
     scan_results = {}
