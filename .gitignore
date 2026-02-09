@@ -196,3 +196,20 @@ data/secure/
 data/health/
 data/jobs.db
 *.enc
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/Cargo.lock
+*.rs.bk
+
+# Tauri build outputs
+src-tauri/gen/
+*.app
+*.dmg
+*.msi
+*.AppImage
+*.deb
+*.rpm
+
+# Tauri WRY WebView cache
+WV2Profile/

@@ -1,0 +1,53 @@
+[package]
+name = "byteguardx-desktop"
+version = "1.0.0"
+description = "ByteGuardX Desktop - AI-Powered Security Vulnerability Scanner"
+authors = ["ByteGuardX Team"]
+license = "MIT"
+repository = "https://github.com/byteguardx/byteguardx"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = [ "dialog-ask", "dialog-confirm", "window-set-title", "system-tray", "process-exit",
+    "dialog-open",
+    "dialog-save",
+    "dialog-message",
+    "fs-read-file",
+    "fs-write-file",
+    "fs-exists",
+    "fs-create-dir",
+    "path-all",
+    "process-command-api",
+    "process-relaunch",
+    "window-close",
+    "window-minimize",
+    "window-maximize",
+    "window-unmaximize",
+    "window-show",
+    "window-hide"
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "rt-multi-thread"] }
+thiserror = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+env_logger = "0.10"
+directories = "5.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

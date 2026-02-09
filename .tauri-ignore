@@ -1,0 +1,71 @@
+# Tauri Build Ignore File
+# Files and directories to exclude from Tauri builds
+
+# Development files
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Electron legacy
+desktop-app/
+electron-builder.yml
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test fixtures and data
+tests/fixtures/
+test_*.py
+*_test.py
+
+# Documentation sources
+docs/src/
+*.md.bak
+
+# Large data files
+data/logs/
+data/backups/
+*.db-wal
+*.db-shm
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.log
+
+# Build artifacts from other platforms
+dist/
+build/
+*.egg-info/
+
+# CI/CD files not needed in bundle
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Mobile app (not part of desktop)
+mobile-app/
+mobile/
+
+# Development scripts
+debug_*.py
+test_*.html
+analyze_*.py
+
+# Kubernetes (not for desktop)
+k8s/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore

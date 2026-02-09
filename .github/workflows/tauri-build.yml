@@ -1,0 +1,194 @@
+name: Tauri Build
+
+on:
+  push:
+    branches:
+      - main
+      - tauri-migration
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - tauri-migration
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build and test on all platforms
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            rust_target: x86_64-apple-darwin
+          - os: macos-latest
+            rust_target: aarch64-apple-darwin
+    
+    runs-on: ${{ matrix.platform.os }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      # Setup Rust
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.rust_target }}
+      
+      # Cache Rust dependencies
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      
+      # Install Linux dependencies
+      - name: Install Linux dependencies
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      
+      # Install frontend dependencies
+      - name: Install frontend dependencies
+        run: npm ci
+      
+      # Run frontend tests
+      - name: Run frontend tests
+        run: npm test --if-present
+      
+      # Run Rust tests
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      
+      # Build frontend
+      - name: Build frontend
+        run: npm run build
+      
+      # Build Tauri app
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target ${{ matrix.platform.rust_target }}
+      
+      # Upload artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: byteguardx-${{ matrix.platform.os }}-${{ matrix.platform.rust_target }}
+          path: |
+            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*
+          if-no-files-found: error
+
+  # Create GitHub Release
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # Download all artifacts
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      # Create checksums
+      - name: Create checksums
+        run: |
+          cd artifacts
+          find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" -o -name "*.exe" \) -exec sha256sum {} \; > ../checksums.txt
+      
+      # Create release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Python engine tests
+  python-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+      
+      - name: Run Python tests
+        run: |
+          pytest --cov=byteguardx --cov=engine tests/ -v
+      
+      - name: Test engine CLI
+        run: |
+          echo '{"cmd": "health", "args": {}, "request_id": "test-1"}' | python engine/cli.py
+
+  # Security scan
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Audit npm dependencies
+        run: npm audit --production || true
+      
+      - name: Audit Rust dependencies
+        run: |
+          cargo install cargo-audit || true
+          cargo audit --file src-tauri/Cargo.toml || true

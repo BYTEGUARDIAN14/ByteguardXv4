@@ -1,0 +1,126 @@
+{
+    "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+    "build": {
+        "beforeBuildCommand": "npm run build",
+        "beforeDevCommand": "npm run dev",
+        "devPath": "http://localhost:3000",
+        "distDir": "../dist"
+    },
+    "package": {
+        "productName": "ByteGuardX",
+        "version": "1.0.0"
+    },
+    "tauri": {
+        "allowlist": {
+            "all": false,
+            "dialog": {
+                "all": false,
+                "open": true,
+                "save": true,
+                "message": true,
+                "ask": true,
+                "confirm": true
+            },
+            "fs": {
+                "all": false,
+                "readFile": true,
+                "writeFile": true,
+                "exists": true,
+                "createDir": true,
+                "scope": [
+                    "$APPDATA/**",
+                    "$DOCUMENT/**",
+                    "$HOME/**"
+                ]
+            },
+            "path": {
+                "all": true
+            },
+            "process": {
+                "all": false,
+                "relaunch": true,
+                "exit": true
+            },
+            "shell": {
+                "all": false,
+                "open": false,
+                "execute": false,
+                "sidecar": false,
+                "scope": []
+            },
+            "window": {
+                "all": false,
+                "close": true,
+                "minimize": true,
+                "maximize": true,
+                "unmaximize": true,
+                "show": true,
+                "hide": true,
+                "setTitle": true
+            }
+        },
+        "bundle": {
+            "active": true,
+            "category": "DeveloperTool",
+            "copyright": "© 2026 ByteGuardX Team",
+            "deb": {
+                "depends": []
+            },
+            "externalBin": [],
+            "icon": [
+                "icons/32x32.png",
+                "icons/128x128.png",
+                "icons/128x128@2x.png",
+                "icons/icon.icns",
+                "icons/icon.ico"
+            ],
+            "identifier": "com.byteguardx.desktop",
+            "longDescription": "ByteGuardX is an AI-powered security vulnerability scanner for developers. Scan code for secrets, vulnerabilities, and security issues offline.",
+            "macOS": {
+                "entitlements": null,
+                "exceptionDomain": "",
+                "frameworks": [],
+                "providerShortName": null,
+                "signingIdentity": null,
+                "minimumSystemVersion": "10.15"
+            },
+            "resources": [],
+            "shortDescription": "AI-Powered Security Scanner",
+            "targets": "all",
+            "windows": {
+                "certificateThumbprint": null,
+                "digestAlgorithm": "sha256",
+                "timestampUrl": "",
+                "wix": null
+            }
+        },
+        "security": {
+            "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+        },
+        "updater": {
+            "active": false,
+            "endpoints": [],
+            "dialog": true,
+            "pubkey": ""
+        },
+        "windows": [
+            {
+                "title": "ByteGuardX",
+                "width": 1400,
+                "height": 900,
+                "minWidth": 1000,
+                "minHeight": 700,
+                "resizable": true,
+                "fullscreen": false,
+                "center": true,
+                "decorations": true,
+                "transparent": false,
+                "focus": true
+            }
+        ],
+        "systemTray": {
+            "iconPath": "icons/icon.png",
+            "iconAsTemplate": true
+        }
+    }
+}

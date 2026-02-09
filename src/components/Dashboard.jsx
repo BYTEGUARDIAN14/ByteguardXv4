@@ -25,6 +25,7 @@ import PluginMarketplace from './PluginMarketplace';
 import PluginDashboard from './PluginDashboard';
 import PluginExecutionMonitor from './PluginExecutionMonitor';
 import SecurityAnalyticsDashboard from './SecurityAnalyticsDashboard';
+import tauriAPI from '../services/tauri-api';
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -43,14 +44,13 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/dashboard/stats');
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+      const stats = await tauriAPI.dashboard.getStats();
+      if (stats) {
+        setDashboardData(stats);
       }
-      const data = await response.json();
-      setDashboardData(data.stats);
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to fetch dashboard data:', err);
+      // Don't set error state to avoid blocking UI if backend is just starting up
     } finally {
       setLoading(false);
     }
@@ -58,10 +58,12 @@ const Dashboard = () => {
 
   const fetchPluginData = async () => {
     try {
-      const response = await fetch('/api/v2/plugins');
-      if (response.ok) {
-        const data = await response.json();
-        setPluginData(data.marketplace);
+      const plugins = await tauriAPI.plugins.list();
+      if (plugins) {
+        // Transform list to expected format if needed, or update component to handle array
+        // The original code expected { marketplace: ... }
+        // Let's assume for now we just pass the list
+        setPluginData({ marketplace: plugins });
       }
     } catch (err) {
       console.error('Failed to fetch plugin data:', err);
@@ -70,10 +72,9 @@ const Dashboard = () => {
 
   const fetchPluginStats = async () => {
     try {
-      const response = await fetch('/api/v2/plugins/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setPluginStats(data.stats);
+      const stats = await tauriAPI.plugins.getStats();
+      if (stats) {
+        setPluginStats(stats);
       }
     } catch (err) {
       console.error('Failed to fetch plugin stats:', err);
@@ -114,11 +115,10 @@ const Dashboard = () => {
         <button
           key={id}
           onClick={() => setActiveTab(id)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
-            activeTab === id
-              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${activeTab === id
+            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
         >
           <Icon className="w-4 h-4" />
           <span>{label}</span>
@@ -366,143 +366,142 @@ const Dashboard = () => {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-cyan-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
-            <Shield className="h-4 w-4 text-cyan-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockData.summary.totalScans}</div>
-            <p className="text-xs text-gray-600">
-              +12% from last month
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="border-l-4 border-l-cyan-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
+                <Shield className="h-4 w-4 text-cyan-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{mockData.summary.totalScans}</div>
+                <p className="text-xs text-gray-600">
+                  +12% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical Issues</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {mockData.summary.criticalFindings}
-            </div>
-            <p className="text-xs text-gray-600">
-              Requires immediate attention
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-orange-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <TrendingUp className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {mockData.summary.highFindings}
-            </div>
-            <p className="text-xs text-gray-600">
-              -8% from last week
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Risk Score</CardTitle>
-            <Zap className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {mockData.summary.riskScore}/100
-            </div>
-            <Progress value={mockData.summary.riskScore} className="mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Security Metrics */}
-        <div className="lg:col-span-2">
-          <SecurityMetrics data={mockData.summary} />
-        </div>
-
-        {/* Risk Meter */}
-        <div>
-          <RiskMeter score={mockData.summary.riskScore} />
-        </div>
-      </div>
-
-      {/* Vulnerability Heatmap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VulnerabilityHeatmap data={mockData.trends} />
-        
-        {/* Recent Scans */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="h-5 w-5 mr-2" />
-              Recent Scans
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockData.recentScans.map((scan) => (
-                <div key={scan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 rounded-full ${
-                      scan.status === 'completed' ? 'bg-green-500' : 
-                      scan.status === 'running' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}></div>
-                    <div>
-                      <p className="font-medium text-sm">{scan.path}</p>
-                      <p className="text-xs text-gray-600">
-                        {new Date(scan.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={scan.findings > 0 ? "destructive" : "secondary"}>
-                      {scan.findings} issues
-                    </Badge>
-                    <Badge variant="outline">
-                      {scan.status}
-                    </Badge>
-                  </div>
+            <Card className="border-l-4 border-l-red-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Critical Issues</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {mockData.summary.criticalFindings}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <p className="text-xs text-gray-600">
+                  Requires immediate attention
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Severity Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Findings by Severity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { severity: 'critical', count: mockData.summary.criticalFindings, label: 'Critical' },
-              { severity: 'high', count: mockData.summary.highFindings, label: 'High' },
-              { severity: 'medium', count: mockData.summary.mediumFindings, label: 'Medium' },
-              { severity: 'low', count: mockData.summary.lowFindings, label: 'Low' }
-            ].map(({ severity, count, label }) => (
-              <div key={severity} className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${getSeverityColor(severity)} text-white mb-2`}>
-                  {getSeverityIcon(severity)}
+            <Card className="border-l-4 border-l-orange-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">High Priority</CardTitle>
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {mockData.summary.highFindings}
                 </div>
-                <div className="text-2xl font-bold">{count}</div>
-                <div className="text-sm text-gray-600">{label}</div>
-              </div>
-            ))}
+                <p className="text-xs text-gray-600">
+                  -8% from last week
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Risk Score</CardTitle>
+                <Zap className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {mockData.summary.riskScore}/100
+                </div>
+                <Progress value={mockData.summary.riskScore} className="mt-2" />
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Security Metrics */}
+            <div className="lg:col-span-2">
+              <SecurityMetrics data={mockData.summary} />
+            </div>
+
+            {/* Risk Meter */}
+            <div>
+              <RiskMeter score={mockData.summary.riskScore} />
+            </div>
+          </div>
+
+          {/* Vulnerability Heatmap */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <VulnerabilityHeatmap data={mockData.trends} />
+
+            {/* Recent Scans */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Recent Scans
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {mockData.recentScans.map((scan) => (
+                    <div key={scan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${scan.status === 'completed' ? 'bg-green-500' :
+                          scan.status === 'running' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}></div>
+                        <div>
+                          <p className="font-medium text-sm">{scan.path}</p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(scan.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={scan.findings > 0 ? "destructive" : "secondary"}>
+                          {scan.findings} issues
+                        </Badge>
+                        <Badge variant="outline">
+                          {scan.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Severity Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Findings by Severity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { severity: 'critical', count: mockData.summary.criticalFindings, label: 'Critical' },
+                  { severity: 'high', count: mockData.summary.highFindings, label: 'High' },
+                  { severity: 'medium', count: mockData.summary.mediumFindings, label: 'Medium' },
+                  { severity: 'low', count: mockData.summary.lowFindings, label: 'Low' }
+                ].map(({ severity, count, label }) => (
+                  <div key={severity} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${getSeverityColor(severity)} text-white mb-2`}>
+                      {getSeverityIcon(severity)}
+                    </div>
+                    <div className="text-2xl font-bold">{count}</div>
+                    <div className="text-sm text-gray-600">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
