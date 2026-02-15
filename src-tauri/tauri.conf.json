@@ -115,7 +115,8 @@
                 "center": true,
                 "decorations": true,
                 "transparent": false,
-                "focus": true
+                "focus": true,
+                "visible": true
             }
         ],
         "systemTray": {

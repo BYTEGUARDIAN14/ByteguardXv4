@@ -30,6 +30,8 @@ class StackLauncher:
         self.logger = self._setup_logging()
         
         # Component configurations
+        npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
+        
         self.components = {
             'backend': {
                 'name': 'ByteGuardX Backend',
@@ -41,7 +43,7 @@ class StackLauncher:
             },
             'frontend': {
                 'name': 'ByteGuardX Frontend',
-                'command': ['npm', 'run', 'dev'],
+                'command': [npm_cmd, 'run', 'dev'],
                 'cwd': str(project_root),
                 'port': 3001,
                 'health_endpoint': 'http://localhost:3001',
@@ -49,7 +51,7 @@ class StackLauncher:
             },
             'portal': {
                 'name': 'ByteGuardX Portal',
-                'command': ['npm', 'run', 'dev'],
+                'command': [npm_cmd, 'run', 'dev'],
                 'cwd': str(project_root / 'byteguardx-portal'),
                 'port': 3003,
                 'health_endpoint': 'http://localhost:3003',
@@ -101,8 +103,9 @@ class StackLauncher:
         
         # Check Node.js and npm
         try:
+            npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
             subprocess.run(['node', '--version'], check=True, capture_output=True)
-            subprocess.run(['npm', '--version'], check=True, capture_output=True)
+            subprocess.run([npm_cmd, '--version'], check=True, capture_output=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             issues.append("Node.js and npm are required")
         
@@ -141,9 +144,10 @@ class StackLauncher:
             return False
         
         # Install frontend dependencies
+        npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
         if (project_root / 'package.json').exists():
             try:
-                subprocess.run(['npm', 'install'], check=True, cwd=project_root)
+                subprocess.run([npm_cmd, 'install'], check=True, cwd=project_root)
                 self.logger.info("✅ Frontend dependencies installed")
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"❌ Failed to install frontend dependencies: {e}")
@@ -153,7 +157,7 @@ class StackLauncher:
         portal_dir = project_root / 'byteguardx-portal'
         if (portal_dir / 'package.json').exists():
             try:
-                subprocess.run(['npm', 'install'], check=True, cwd=portal_dir)
+                subprocess.run([npm_cmd, 'install'], check=True, cwd=portal_dir)
                 self.logger.info("✅ Portal dependencies installed")
             except subprocess.CalledProcessError as e:
                 self.logger.warning(f"⚠️  Failed to install portal dependencies: {e}")
@@ -196,7 +200,7 @@ class StackLauncher:
     
     def _monitor_process_output(self, component_name: str, process: subprocess.Popen):
         """Monitor process output"""
-        config = self.components[component_name]['config']
+        config = self.components[component_name]
         
         while process.poll() is None:
             try:

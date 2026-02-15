@@ -15,6 +15,7 @@ import {
   Eye,
   BarChart3
 } from 'lucide-react';
+import tauriAPI from '../services/tauri-api';
 
 const PluginTestingInterface = ({ pluginData }) => {
   const [selectedPlugin, setSelectedPlugin] = useState('');
@@ -81,28 +82,23 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
 
     try {
       const testCase = testCases[selectedPlugin];
-      const response = await fetch(`/api/v2/plugins/${selectedPlugin}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: testContent,
-          file_path: testCase.fileName,
-          context: { test_mode: true }
-        })
+      const response = await tauriAPI.plugins.execute(selectedPlugin, {
+        content: testContent,
+        file_path: testCase.fileName,
+        context: { test_mode: true }
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setTestResults(result.result);
-        
+      if (response && response.result) {
+        setTestResults(response.result);
+
         // Add to history
         const historyEntry = {
           id: Date.now(),
           plugin: selectedPlugin,
           timestamp: new Date().toISOString(),
-          status: result.result.status,
-          findings: result.result.findings?.length || 0,
-          executionTime: result.result.execution_time_ms
+          status: response.result.status,
+          findings: response.result.findings?.length || 0,
+          executionTime: response.result.execution_time_ms
         };
         setTestHistory(prev => [historyEntry, ...prev.slice(0, 9)]);
       } else {
@@ -130,7 +126,7 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
         <TestTube className="w-5 h-5 mr-2 text-cyan-400" />
         Plugin Testing Interface
       </h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -149,16 +145,15 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
             ))}
           </select>
         </div>
-        
+
         <div className="flex items-end">
           <motion.button
             onClick={runPluginTest}
             disabled={!selectedPlugin || !testContent || isRunning}
-            className={`flex items-center space-x-2 px-6 py-2 rounded-lg font-medium transition-all ${
-              !selectedPlugin || !testContent || isRunning
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
-            }`}
+            className={`flex items-center space-x-2 px-6 py-2 rounded-lg font-medium transition-all ${!selectedPlugin || !testContent || isRunning
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
+              }`}
             whileHover={!selectedPlugin || !testContent || isRunning ? {} : { scale: 1.02 }}
             whileTap={!selectedPlugin || !testContent || isRunning ? {} : { scale: 0.98 }}
           >
@@ -199,7 +194,7 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
           </span>
         </div>
       </div>
-      
+
       <textarea
         value={testContent}
         onChange={(e) => setTestContent(e.target.value)}
@@ -270,7 +265,7 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
                 Found {testResults.findings.length} finding(s)
               </span>
             </div>
-            
+
             {testResults.findings.map((finding, index) => (
               <div key={index} className="p-4 bg-black/20 border border-white/10 rounded-lg">
                 <div className="flex items-start justify-between mb-2">
@@ -284,7 +279,7 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
                     <p className="text-gray-400 text-sm">{finding.description}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between text-xs text-gray-500 mt-3">
                   <div className="flex items-center space-x-4">
                     {finding.line_number && (
@@ -298,7 +293,7 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
                     <span className="text-cyan-400">{finding.cwe_id}</span>
                   )}
                 </div>
-                
+
                 {finding.context && (
                   <div className="mt-2 p-2 bg-black/40 rounded border-l-2 border-cyan-500">
                     <code className="text-xs text-gray-300">{finding.context}</code>
@@ -328,15 +323,14 @@ token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
         <Clock className="w-4 h-4 mr-2 text-cyan-400" />
         Test History
       </h4>
-      
+
       {testHistory.length > 0 ? (
         <div className="space-y-2">
           {testHistory.map((entry) => (
             <div key={entry.id} className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
               <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  entry.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
-                }`} />
+                <div className={`w-2 h-2 rounded-full ${entry.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
+                  }`} />
                 <div>
                   <div className="text-sm font-medium text-white">
                     {testCases[entry.plugin]?.name || entry.plugin}

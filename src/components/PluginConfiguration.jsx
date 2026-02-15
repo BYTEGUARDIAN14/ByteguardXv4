@@ -17,6 +17,7 @@ import {
   Memory,
   Cpu
 } from 'lucide-react';
+import tauriAPI from '../services/tauri-api';
 
 const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
   const [configurations, setConfigurations] = useState({});
@@ -39,9 +40,8 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
 
   const loadConfigurations = async () => {
     try {
-      const response = await fetch('/api/v2/plugins/config');
-      if (response.ok) {
-        const data = await response.json();
+      const data = await tauriAPI.plugins.getConfig();
+      if (data) {
         setConfigurations(data.configurations || {});
         setGlobalSettings(data.global_settings || globalSettings);
       }
@@ -53,16 +53,12 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
   const saveConfiguration = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/v2/plugins/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          configurations,
-          global_settings: globalSettings
-        })
+      const success = await tauriAPI.plugins.saveConfig({
+        configurations,
+        global_settings: globalSettings
       });
 
-      if (response.ok) {
+      if (success) {
         onConfigUpdate && onConfigUpdate();
         // Show success notification
       }
@@ -108,19 +104,17 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
             <Shield className="w-4 h-4 mr-2" />
             Security & Sandbox
           </h4>
-          
+
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Enable Sandbox</span>
             <button
               onClick={() => updateGlobalSetting('enableSandbox', !globalSettings.enableSandbox)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                globalSettings.enableSandbox ? 'bg-cyan-600' : 'bg-gray-600'
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${globalSettings.enableSandbox ? 'bg-cyan-600' : 'bg-gray-600'
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  globalSettings.enableSandbox ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${globalSettings.enableSandbox ? 'translate-x-6' : 'translate-x-1'
+                  }`}
               />
             </button>
           </div>
@@ -148,7 +142,7 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
             <Zap className="w-4 h-4 mr-2" />
             Performance Limits
           </h4>
-          
+
           <div>
             <label className="block text-sm text-gray-400 mb-2">Max Concurrent Plugins</label>
             <input
@@ -183,7 +177,7 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
             <Memory className="w-4 h-4 mr-2" />
             Resource Limits
           </h4>
-          
+
           <div>
             <label className="block text-sm text-gray-400 mb-2">Max Memory (MB)</label>
             <input
@@ -242,7 +236,7 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
 
   const renderPluginList = () => {
     const allPlugins = pluginData?.categories?.flatMap(cat => cat.plugins) || [];
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -260,15 +254,14 @@ const PluginConfiguration = ({ pluginData, onConfigUpdate }) => {
             const pluginName = plugin.manifest?.name || `plugin_${index}`;
             const config = configurations[pluginName] || {};
             const isEnabled = config.enabled !== false;
-            
+
             return (
               <div
                 key={pluginName}
-                className={`p-4 bg-black/20 border rounded-lg transition-all cursor-pointer ${
-                  selectedPlugin === pluginName
-                    ? 'border-cyan-500 bg-cyan-500/10'
-                    : 'border-white/10 hover:border-white/20'
-                }`}
+                className={`p-4 bg-black/20 border rounded-lg transition-all cursor-pointer ${selectedPlugin === pluginName
+                  ? 'border-cyan-500 bg-cyan-500/10'
+                  : 'border-white/10 hover:border-white/20'
+                  }`}
                 onClick={() => setSelectedPlugin(selectedPlugin === pluginName ? null : pluginName)}
               >
                 <div className="flex items-center justify-between mb-3">

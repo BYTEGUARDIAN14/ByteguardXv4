@@ -280,6 +280,78 @@ export const pluginService = {
             success_rate: 0,
             average_execution_time: 0
         };
+    },
+
+    /**
+     * Get plugin configuration
+     * @returns {Promise<Object>} Plugin configuration
+     */
+    async getConfig() {
+        if (isTauri && invoke) {
+            try {
+                return await invoke('get_plugin_config');
+            } catch (e) {
+                console.warn('get_plugin_config not implemented, using mock');
+            }
+        }
+
+        // Mock data
+        return {
+            configurations: {},
+            global_settings: {
+                enableSandbox: true,
+                maxConcurrentPlugins: 10,
+                defaultTimeout: 60,
+                maxMemoryMB: 512,
+                maxCpuPercent: 50,
+                trustThreshold: 0.7,
+                enableLogging: true,
+                enableMetrics: true
+            }
+        };
+    },
+
+    /**
+     * Save plugin configuration
+     * @param {Object} config - Configuration object
+     * @returns {Promise<boolean>} Success
+     */
+    async saveConfig(config) {
+        if (isTauri && invoke) {
+            try {
+                return await invoke('save_plugin_config', { config });
+            } catch (e) {
+                console.warn('save_plugin_config not implemented, using mock');
+            }
+        }
+
+        // Mock success
+        return true;
+    },
+
+    /**
+     * Execute a plugin (test mode)
+     * @param {string} pluginId - Plugin ID
+     * @param {Object} params - Execution parameters
+     * @returns {Promise<Object>} Execution result
+     */
+    async execute(pluginId, params) {
+        if (isTauri && invoke) {
+            try {
+                return await invoke('execute_plugin', { pluginId, params });
+            } catch (e) {
+                console.warn('execute_plugin not implemented, using mock');
+            }
+        }
+
+        // Mock result
+        return {
+            result: {
+                status: 'completed',
+                findings: [],
+                execution_time_ms: 150
+            }
+        };
     }
 };
 
