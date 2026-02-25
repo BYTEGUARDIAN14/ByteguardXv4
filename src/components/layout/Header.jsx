@@ -1,272 +1,156 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Search, 
-  Bell, 
-  Settings, 
-  User, 
-  LogOut, 
-  Moon, 
-  Sun,
-  Menu,
-  X,
-  Shield
-} from 'lucide-react'
+import { Search, Bell, User, ChevronRight } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-const Header = ({ onMenuToggle, sidebarCollapsed }) => {
-  const { user, logout } = useAuth()
+const Header = ({ sidebarCollapsed }) => {
+  const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
-  const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications] = useState([
+
+  const notifications = [
     {
       id: 1,
       title: 'Scan Complete',
-      message: 'Your security scan has finished with 3 vulnerabilities found',
+      message: '3 vulnerabilities found',
       time: '2 min ago',
-      type: 'warning',
       unread: true
     },
     {
       id: 2,
-      title: 'New Plugin Available',
-      message: 'ESLint Security Plugin v2.1.0 is now available',
+      title: 'Plugin Update',
+      message: 'ESLint Security Plugin v2.1.0',
       time: '1 hour ago',
-      type: 'info',
       unread: true
     },
     {
       id: 3,
       title: 'System Update',
-      message: 'ByteGuardX has been updated to v1.2.0',
+      message: 'ByteGuardX v2.0.0 installed',
       time: '3 hours ago',
-      type: 'success',
       unread: false
     }
-  ])
+  ]
 
   const unreadCount = notifications.filter(n => n.unread).length
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
+  // Get breadcrumb from current path
+  const getBreadcrumb = () => {
+    const path = location.pathname
+    if (path === '/' || path === '/dashboard') return 'Dashboard'
+    if (path === '/scan') return 'Security Scanner'
+    if (path === '/reports') return 'Reports'
+    if (path.startsWith('/report/')) return 'Report Details'
+    if (path === '/plugins') return 'Plugins'
+    if (path === '/settings') return 'Settings'
+    if (path === '/admin') return 'Administration'
+    return 'ByteGuardX'
   }
 
   const handleSearch = (e) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      // Implement search functionality
       console.log('Searching for:', searchQuery)
     }
   }
 
-  const userMenuVariants = {
-    hidden: { opacity: 0, scale: 0.95, y: -10 },
-    visible: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 0.95, y: -10 }
-  }
-
-  const notificationVariants = {
-    hidden: { opacity: 0, x: 20 },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 }
-  }
-
   return (
-    <motion.header
+    <header
       className={`
-        fixed top-0 right-0 h-16 glass-nav border-b border-white/15 z-30 transition-all duration-300
-        ${sidebarCollapsed ? 'left-20' : 'left-72'}
+        fixed top-0 right-0 h-[44px] z-30
+        bg-desktop-sidebar border-b border-desktop-border
+        transition-all duration-200 ease-in-out
+        ${sidebarCollapsed ? 'left-[56px]' : 'left-[240px]'}
       `}
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center justify-between h-full px-6">
-        {/* Left Section */}
-        <div className="flex items-center space-x-4">
-          <motion.button
-            onClick={onMenuToggle}
-            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors lg:hidden"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Menu className="h-5 w-5" />
-          </motion.button>
-
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <motion.input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search scans, reports..."
-                className="w-64 pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition-all duration-200"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </div>
-          </form>
+      <div className="flex items-center justify-between h-full px-4">
+        {/* Left: Breadcrumb */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[13px] font-medium text-text-primary truncate">
+            {getBreadcrumb()}
+          </span>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center space-x-4">
-          {/* Quick Actions */}
-          <motion.button
-            onClick={() => navigate('/scan')}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-500/80 to-blue-600/80 text-white rounded-xl font-medium hover:from-cyan-400/90 hover:to-blue-500/90 transition-all duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Shield className="h-4 w-4 mr-2 inline" />
-            Quick Scan
-          </motion.button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-disabled" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-48 pl-8 pr-3 py-1.5 bg-desktop-input border border-desktop-border rounded-desktop
+                         text-xs text-text-primary placeholder-text-disabled
+                         focus:outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600/30
+                         transition-colors duration-150"
+            />
+          </form>
 
           {/* Notifications */}
           <div className="relative">
-            <motion.button
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              className="relative p-1.5 rounded-desktop text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors duration-150"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <motion.span
-                  className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                >
+                <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-danger text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
-                </motion.span>
+                </span>
               )}
-            </motion.button>
+            </button>
 
-            <AnimatePresence>
-              {showNotifications && (
-                <motion.div
-                  className="absolute right-0 top-full mt-2 w-80 glass-card border border-white/20 rounded-2xl shadow-2xl"
-                  variants={notificationVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="p-4 border-b border-white/10">
-                    <h3 className="text-lg font-semibold text-white">Notifications</h3>
+            {showNotifications && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                <div className="absolute right-0 top-full mt-1 w-72 bg-desktop-elevated border border-desktop-border rounded-desktop shadow-xl z-50">
+                  <div className="px-3 py-2 border-b border-desktop-border">
+                    <span className="text-xs font-semibold text-text-primary">Notifications</span>
                   </div>
-                  
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.map((notification, index) => (
-                      <motion.div
+
+                  <div className="max-h-56 overflow-y-auto">
+                    {notifications.map((notification) => (
+                      <div
                         key={notification.id}
-                        className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                          notification.unread ? 'bg-cyan-400/5' : ''
-                        }`}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        className={`px-3 py-2.5 border-b border-desktop-border/50 hover:bg-white/[0.02] transition-colors cursor-pointer
+                          ${notification.unread ? 'bg-primary-500/[0.03]' : ''}`}
                       >
-                        <div className="flex items-start space-x-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 ${
-                            notification.unread ? 'bg-cyan-400' : 'bg-gray-600'
-                          }`} />
-                          <div className="flex-1">
-                            <h4 className="text-sm font-medium text-white">
-                              {notification.title}
-                            </h4>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {notification.time}
-                            </p>
+                        <div className="flex items-start gap-2">
+                          <div className={`mt-1.5 status-dot shrink-0 ${notification.unread ? 'status-online' : 'status-offline'}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-text-primary truncate">{notification.title}</p>
+                            <p className="text-[11px] text-text-muted mt-0.5">{notification.message}</p>
+                            <p className="text-[10px] text-text-disabled mt-1">{notification.time}</p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
-                  
-                  <div className="p-4 border-t border-white/10">
-                    <button className="w-full text-center text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
-                      View All Notifications
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* User Menu */}
-          <div className="relative">
-            <motion.button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">
-                  {user?.username?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <span className="text-white font-medium hidden md:block">
-                {user?.username}
+          {/* User */}
+          <div className="flex items-center gap-2 pl-2 border-l border-desktop-border ml-1">
+            <div className="w-6 h-6 rounded-full bg-primary-700 flex items-center justify-center">
+              <span className="text-[10px] font-semibold text-white">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
               </span>
-            </motion.button>
-
-            <AnimatePresence>
-              {showUserMenu && (
-                <motion.div
-                  className="absolute right-0 top-full mt-2 w-48 glass-card border border-white/20 rounded-2xl shadow-2xl"
-                  variants={userMenuVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="p-2">
-                    <motion.button
-                      onClick={() => navigate('/profile')}
-                      className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
-                      whileHover={{ x: 4 }}
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
-                    </motion.button>
-                    
-                    <motion.button
-                      onClick={() => navigate('/settings')}
-                      className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
-                      whileHover={{ x: 4 }}
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </motion.button>
-                    
-                    <hr className="my-2 border-white/10" />
-                    
-                    <motion.button
-                      onClick={handleLogout}
-                      className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-500/20 text-gray-300 hover:text-red-400 transition-colors"
-                      whileHover={{ x: 4 }}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Logout</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
+            {user?.username && (
+              <span className="text-xs text-text-secondary font-medium hidden lg:block">
+                {user.username}
+              </span>
+            )}
           </div>
         </div>
       </div>
-    </motion.header>
+    </header>
   )
 }
 

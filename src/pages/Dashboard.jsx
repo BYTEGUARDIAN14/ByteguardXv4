@@ -1,43 +1,26 @@
 import React, { useState, useEffect, startTransition, useDeferredValue } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield,
-  Activity,
-  FileText,
   AlertTriangle,
-  CheckCircle,
-  Clock,
-  User,
-  Settings,
-  LogOut,
   Scan,
-  TrendingUp,
-  Database,
+  FileText,
   Calendar,
   Plus,
   Play,
   Pause,
-  BarChart3,
-  Zap,
-  Bug,
-  Lock
+  Bug
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import Sidebar from '../components/layout/Sidebar'
-import Header from '../components/layout/Header'
-import StatsCard from '../components/dashboard/StatsCard'
 import GlassCard from '../components/ui/GlassCard'
 import Button from '../components/ui/Button'
-import { SkeletonLoader, ScanningLoader } from '../components/ui/LoadingStates'
+import StatsCard from '../components/dashboard/StatsCard'
 import { CircularProgress } from '../components/ui/ProgressIndicator'
-import { staggerContainer, staggerItem, slideUp } from '../utils/animations'
 import ScheduleScanModal from '../components/ScheduleScanModal'
 
 const Dashboard = () => {
   const { user, logout, api } = useAuth()
   const navigate = useNavigate()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [dashboardData, setDashboardData] = useState({
     recentScans: [],
     scanStats: {
@@ -54,9 +37,7 @@ const Dashboard = () => {
   const [scheduledScans, setScheduledScans] = useState([])
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeScans, setActiveScans] = useState([])
 
-  // Use deferred values to prevent suspension
   const deferredDashboardData = useDeferredValue(dashboardData)
   const deferredScheduledScans = useDeferredValue(scheduledScans)
   const deferredIsLoading = useDeferredValue(isLoading)
@@ -70,11 +51,8 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      startTransition(() => {
-        setIsLoading(true)
-      })
+      startTransition(() => setIsLoading(true))
 
-      // Fetch user's scan history and stats with timeout
       const fetchWithTimeout = (promise, timeout = 10000) => {
         return Promise.race([
           promise,
@@ -89,7 +67,6 @@ const Dashboard = () => {
         fetchWithTimeout(api.get('/api/user/stats'))
       ])
 
-      // Process responses safely
       const scansData = scansResponse.status === 'fulfilled' ? scansResponse.value : null
       const statsData = statsResponse.status === 'fulfilled' ? statsResponse.value : null
 
@@ -109,7 +86,6 @@ const Dashboard = () => {
         })
       })
 
-      // Log any failed requests
       if (scansResponse.status === 'rejected') {
         console.warn('Failed to fetch recent scans:', scansResponse.reason)
       }
@@ -119,8 +95,6 @@ const Dashboard = () => {
 
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
-
-      // Set safe default data on error
       startTransition(() => {
         setDashboardData({
           recentScans: [],
@@ -137,19 +111,8 @@ const Dashboard = () => {
         })
       })
     } finally {
-      startTransition(() => {
-        setIsLoading(false)
-      })
+      startTransition(() => setIsLoading(false))
     }
-  }
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
-
-  const handleStartScan = () => {
-    navigate('/scan')
   }
 
   const fetchScheduledScans = async () => {
@@ -159,9 +122,7 @@ const Dashboard = () => {
       })
       if (response.ok) {
         const data = await response.json()
-        startTransition(() => {
-          setScheduledScans(data.scheduled_scans || [])
-        })
+        startTransition(() => setScheduledScans(data.scheduled_scans || []))
       }
     } catch (error) {
       console.error('Error fetching scheduled scans:', error)
@@ -172,18 +133,14 @@ const Dashboard = () => {
     try {
       const response = await fetch('/api/scans/schedule', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(scanData)
       })
 
       if (response.ok) {
-        fetchScheduledScans() // Refresh the list
-        startTransition(() => {
-          setShowScheduleModal(false)
-        })
+        fetchScheduledScans()
+        startTransition(() => setShowScheduleModal(false))
       } else {
         throw new Error('Failed to schedule scan')
       }
@@ -197,369 +154,242 @@ const Dashboard = () => {
     try {
       const response = await fetch(`/api/scans/scheduled/${scanId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ is_active: !isActive })
       })
 
       if (response.ok) {
-        fetchScheduledScans() // Refresh the list
+        fetchScheduledScans()
       }
     } catch (error) {
       console.error('Error toggling scheduled scan:', error)
     }
   }
 
-  const handleViewReports = () => {
-    navigate('/reports')
-  }
-
   if (deferredIsLoading) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <Sidebar
-          isCollapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-
-        <div className={`
-          transition-all duration-300 pt-16
-          ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-72'}
-        `}>
-          <div className="p-4 sm:p-6 md:p-8">
-            <ScanningLoader text="Loading dashboard..." />
-          </div>
+      <div className="p-6">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-text-muted">Loading dashboard...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
+    <div className="p-6 space-y-6 overflow-y-auto">
+      {/* Page Title */}
+      <div>
+        <h1 className="text-lg font-semibold text-text-primary">Security Dashboard</h1>
+        <p className="text-xs text-text-muted mt-0.5">Your local security overview</p>
+      </div>
 
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard
+          title="Total Scans"
+          value={deferredDashboardData.scanStats.totalScans}
+          change="+12% from last month"
+          changeType="positive"
+          icon={Scan}
+          color="cyan"
+          onClick={() => navigate('/reports')}
+        />
+        <StatsCard
+          title="Vulnerabilities"
+          value={deferredDashboardData.scanStats.vulnerabilitiesFound}
+          change="-8% from last month"
+          changeType="positive"
+          icon={AlertTriangle}
+          color="red"
+          onClick={() => navigate('/reports')}
+        />
+        <StatsCard
+          title="Critical Issues"
+          value={deferredDashboardData.scanStats.criticalIssues}
+          change="2 resolved today"
+          changeType="positive"
+          icon={Bug}
+          color="yellow"
+          onClick={() => navigate('/reports')}
+        />
+        <StatsCard
+          title="Security Score"
+          value={`${deferredDashboardData.securityScore}%`}
+          change="+5% improvement"
+          changeType="positive"
+          icon={Shield}
+          color="green"
+        />
+      </div>
 
-      <Header
-        onMenuToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        sidebarCollapsed={sidebarCollapsed}
-      />
+      {/* Middle Row: Score + Quick Actions + System Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Security Score */}
+        <GlassCard className="p-5" hover={false}>
+          <h3 className="text-sm font-semibold text-text-primary mb-4">Security Score</h3>
+          <div className="flex justify-center mb-3">
+            <CircularProgress
+              progress={deferredDashboardData.securityScore}
+              size={100}
+              color="cyan"
+              animated={true}
+            />
+          </div>
+          <p className="text-xs text-text-muted text-center">Overall security posture</p>
+        </GlassCard>
 
-      <main className={`
-        transition-all duration-300 pt-16
-        ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-72'}
-      `}>
-        <div className="p-4 sm:p-6 md:p-8">
-          {/* Welcome Section */}
-          <motion.div
-            className="mb-8"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={staggerItem}>
-              <h1 className="text-2xl font-semibold text-white mb-1">
-                Security Dashboard
-              </h1>
-              <p className="text-neutral-400 text-sm">
-                Your local security overview
-              </p>
-            </motion.div>
-          </motion.div>
-          {/* Stats Cards */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={staggerItem}>
-              <StatsCard
-                title="Total Scans"
-                value={deferredDashboardData.scanStats.totalScans}
-                change="+12% from last month"
-                changeType="positive"
-                icon={Scan}
-                color="cyan"
-                onClick={() => navigate('/reports')}
-              />
-            </motion.div>
+        {/* Quick Actions */}
+        <GlassCard className="p-5" hover={false}>
+          <h3 className="text-sm font-semibold text-text-primary mb-4">Quick Actions</h3>
+          <div className="space-y-2">
+            <Button variant="primary" fullWidth icon={Scan} onClick={() => navigate('/scan')}>
+              Start New Scan
+            </Button>
+            <Button variant="secondary" fullWidth icon={FileText} onClick={() => navigate('/reports')}>
+              View Reports
+            </Button>
+            <Button variant="ghost" fullWidth icon={Calendar} onClick={() => startTransition(() => setShowScheduleModal(true))}>
+              Schedule Scan
+            </Button>
+          </div>
+        </GlassCard>
 
-            <motion.div variants={staggerItem}>
-              <StatsCard
-                title="Vulnerabilities"
-                value={deferredDashboardData.scanStats.vulnerabilitiesFound}
-                change="-8% from last month"
-                changeType="positive"
-                icon={AlertTriangle}
-                color="red"
-                onClick={() => navigate('/reports')}
-              />
-            </motion.div>
-
-            <motion.div variants={staggerItem}>
-              <StatsCard
-                title="Critical Issues"
-                value={deferredDashboardData.scanStats.criticalIssues}
-                change="2 resolved today"
-                changeType="positive"
-                icon={Bug}
-                color="yellow"
-                onClick={() => navigate('/reports')}
-              />
-            </motion.div>
-
-            <motion.div variants={staggerItem}>
-              <StatsCard
-                title="Security Score"
-                value={`${deferredDashboardData.securityScore}%`}
-                change="+5% improvement"
-                changeType="positive"
-                icon={Shield}
-                color="green"
-                onClick={() => navigate('/analytics')}
-              />
-            </motion.div>
-          </motion.div>
-
-          {/* Security Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            {/* Security Score Circle */}
-            <motion.div variants={slideUp}>
-              <GlassCard className="p-6 text-center" hover={false}>
-                <h3 className="text-lg font-semibold text-white mb-6">Security Score</h3>
-                <div className="flex justify-center mb-4">
-                  <CircularProgress
-                    progress={deferredDashboardData.securityScore}
-                    size={120}
-                    color="cyan"
-                    animated={true}
-                  />
+        {/* System Status */}
+        <GlassCard className="p-5" hover={false}>
+          <h3 className="text-sm font-semibold text-text-primary mb-4">System Status</h3>
+          <div className="space-y-3">
+            {[
+              { label: 'Scanner Engine', status: 'Online', online: true },
+              { label: 'AI Analysis', status: 'Active', online: true },
+              { label: 'Database', status: 'Connected', online: true },
+              { label: 'Last Update', status: '2 hours ago', online: null },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between">
+                <span className="text-xs text-text-muted">{item.label}</span>
+                <div className="flex items-center gap-1.5">
+                  {item.online !== null && (
+                    <div className={`status-dot ${item.online ? 'status-online' : 'status-error'}`} />
+                  )}
+                  <span className={`text-xs ${item.online ? 'text-emerald-400' : 'text-text-secondary'}`}>
+                    {item.status}
+                  </span>
                 </div>
-                <p className="text-gray-400 text-sm">
-                  Your overall security posture
-                </p>
-              </GlassCard>
-            </motion.div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </div>
 
-            {/* Quick Actions */}
-            <motion.div variants={slideUp}>
-              <GlassCard className="p-6" hover={false}>
-                <h3 className="text-lg font-semibold text-white mb-6">Quick Actions</h3>
-                <div className="space-y-3">
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    icon={Scan}
-                    onClick={() => navigate('/scan')}
-                  >
-                    Start New Scan
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    icon={FileText}
-                    onClick={() => navigate('/reports')}
-                  >
-                    View Reports
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    fullWidth
-                    icon={Calendar}
-                    onClick={() => startTransition(() => setShowScheduleModal(true))}
-                  >
-                    Schedule Scan
-                  </Button>
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            {/* System Status */}
-            <motion.div variants={slideUp}>
-              <GlassCard className="p-6" hover={false}>
-                <h3 className="text-lg font-semibold text-white mb-6">System Status</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Scanner Engine</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-green-400 text-sm">Online</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">AI Analysis</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-green-400 text-sm">Active</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Database</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-green-400 text-sm">Connected</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Last Update</span>
-                    <span className="text-gray-300 text-sm">2 hours ago</span>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
+      {/* Bottom Row: Recent Scans + Scheduled Scans */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Recent Scans */}
+        <GlassCard className="p-5" hover={false}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-text-primary">Recent Scans</h3>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>
+              View All
+            </Button>
           </div>
 
-          {/* Recent Activity */}
-          <motion.div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Recent Scans */}
-            <motion.div variants={staggerItem}>
-              <GlassCard className="p-6" hover={false}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Recent Scans</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/reports')}
-                  >
-                    View All
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {deferredDashboardData.recentScans.length > 0 ? (
-                    deferredDashboardData.recentScans.slice(0, 5).map((scan, index) => (
-                      <motion.div
-                        key={scan.id}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        onClick={() => navigate(`/report/${scan.id}`)}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-2 h-2 rounded-full ${scan.status === 'completed' ? 'bg-green-400' :
-                            scan.status === 'failed' ? 'bg-red-400' :
-                              'bg-yellow-400'
-                            }`} />
-                          <div>
-                            <p className="text-white font-medium">{scan.filename || 'Unknown'}</p>
-                            <p className="text-gray-400 text-sm">
-                              {scan.vulnerabilities_found || 0} issues found
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-gray-400 text-sm">
-                          {new Date(scan.created_at).toLocaleDateString()}
-                        </span>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <Scan className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">No scans yet</p>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="mt-4"
-                        onClick={() => navigate('/scan')}
-                      >
-                        Start Your First Scan
-                      </Button>
+          <div className="space-y-1">
+            {deferredDashboardData.recentScans.length > 0 ? (
+              deferredDashboardData.recentScans.slice(0, 5).map((scan) => (
+                <div
+                  key={scan.id}
+                  className="flex items-center justify-between px-3 py-2 rounded-desktop hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  onClick={() => navigate(`/report/${scan.id}`)}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`status-dot ${scan.status === 'completed' ? 'status-online' :
+                      scan.status === 'failed' ? 'status-error' : 'status-warning'}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">{scan.filename || 'Unknown'}</p>
+                      <p className="text-[11px] text-text-muted">{scan.vulnerabilities_found || 0} issues</p>
                     </div>
-                  )}
+                  </div>
+                  <span className="text-[11px] text-text-disabled shrink-0 ml-3">
+                    {new Date(scan.created_at).toLocaleDateString()}
+                  </span>
                 </div>
-              </GlassCard>
-            </motion.div>
-            {/* Scheduled Scans */}
-            <motion.div variants={staggerItem}>
-              <GlassCard className="p-6" hover={false}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Scheduled Scans</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={Plus}
-                    onClick={() => startTransition(() => setShowScheduleModal(true))}
-                  >
-                    Add New
-                  </Button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Scan className="h-8 w-8 text-text-disabled mx-auto mb-3" />
+                <p className="text-xs text-text-muted mb-3">No scans yet</p>
+                <Button variant="primary" size="sm" onClick={() => navigate('/scan')}>
+                  Start Your First Scan
+                </Button>
+              </div>
+            )}
+          </div>
+        </GlassCard>
 
-                <div className="space-y-4">
-                  {deferredScheduledScans.length > 0 ? (
-                    deferredScheduledScans.slice(0, 5).map((scan, index) => (
-                      <motion.div
-                        key={scan.id}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-2 h-2 rounded-full ${scan.is_active ? 'bg-green-400' : 'bg-gray-400'
-                            }`} />
-                          <div>
-                            <p className="text-white font-medium">{scan.name}</p>
-                            <p className="text-gray-400 text-sm">
-                              {scan.schedule_type} • Next: {new Date(scan.next_run).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleScheduledScan(scan.id, scan.is_active)}
-                        >
-                          {scan.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        </Button>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">No scheduled scans</p>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="mt-4"
-                        onClick={() => startTransition(() => setShowScheduleModal(true))}
-                      >
-                        Schedule Your First Scan
-                      </Button>
+        {/* Scheduled Scans */}
+        <GlassCard className="p-5" hover={false}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-text-primary">Scheduled Scans</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Plus}
+              onClick={() => startTransition(() => setShowScheduleModal(true))}
+            >
+              Add
+            </Button>
+          </div>
+
+          <div className="space-y-1">
+            {deferredScheduledScans.length > 0 ? (
+              deferredScheduledScans.slice(0, 5).map((scan) => (
+                <div
+                  key={scan.id}
+                  className="flex items-center justify-between px-3 py-2 rounded-desktop hover:bg-white/[0.03] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`status-dot ${scan.is_active ? 'status-online' : 'status-offline'}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">{scan.name}</p>
+                      <p className="text-[11px] text-text-muted">
+                        {scan.schedule_type} • Next: {new Date(scan.next_run).toLocaleDateString()}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                  <button
+                    onClick={() => toggleScheduledScan(scan.id, scan.is_active)}
+                    className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors"
+                  >
+                    {scan.is_active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
-              </GlassCard>
-            </motion.div>
-          </motion.div>
-        </div>
-      </main>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="h-8 w-8 text-text-disabled mx-auto mb-3" />
+                <p className="text-xs text-text-muted mb-3">No scheduled scans</p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => startTransition(() => setShowScheduleModal(true))}
+                >
+                  Schedule Your First Scan
+                </Button>
+              </div>
+            )}
+          </div>
+        </GlassCard>
+      </div>
 
       {/* Schedule Scan Modal */}
-      <AnimatePresence>
-        {showScheduleModal && (
-          <ScheduleScanModal
-            isOpen={showScheduleModal}
-            onClose={() => startTransition(() => setShowScheduleModal(false))}
-            onSchedule={handleScheduleScan}
-          />
-        )}
-      </AnimatePresence>
+      {showScheduleModal && (
+        <ScheduleScanModal
+          isOpen={showScheduleModal}
+          onClose={() => startTransition(() => setShowScheduleModal(false))}
+          onSchedule={handleScheduleScan}
+        />
+      )}
     </div>
   )
 }

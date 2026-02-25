@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import Sidebar from '../components/layout/Sidebar'
-import Header from '../components/layout/Header'
 import PluginMarketplace from '../components/PluginMarketplace'
-import { slideUp } from '../utils/animations'
 
 const PluginMarketplacePage = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pluginData, setPluginData] = useState(null)
 
   useEffect(() => {
@@ -26,33 +21,15 @@ const PluginMarketplacePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+    <div className="p-6 overflow-y-auto">
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-text-primary">Plugin Marketplace</h1>
+        <p className="text-xs text-text-muted mt-0.5">Extend ByteGuardX with community plugins</p>
+      </div>
+      <PluginMarketplace
+        pluginData={pluginData}
+        onRefresh={fetchPluginData}
       />
-      
-      <main className={`transition-all duration-300 ${
-        sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
-        <Header
-          title="Plugin Marketplace"
-          subtitle="Extend ByteGuardX with community plugins"
-          onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-        
-        <motion.div
-          className="p-8"
-          variants={slideUp}
-          initial="hidden"
-          animate="visible"
-        >
-          <PluginMarketplace
-            pluginData={pluginData}
-            onRefresh={fetchPluginData}
-          />
-        </motion.div>
-      </main>
     </div>
   )
 }

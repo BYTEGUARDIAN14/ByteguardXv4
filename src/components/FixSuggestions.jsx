@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { 
-  Wrench, 
-  Copy, 
-  Check, 
-  ChevronDown, 
+import {
+  Wrench,
+  Copy,
+  Check,
+  ChevronDown,
   ChevronRight,
   Code,
   Lightbulb,
@@ -23,11 +22,7 @@ const FixSuggestions = ({ fixes = [] }) => {
 
   const toggleFixExpansion = (index) => {
     const newExpanded = new Set(expandedFixes)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
-    } else {
-      newExpanded.add(index)
-    }
+    if (newExpanded.has(index)) { newExpanded.delete(index) } else { newExpanded.add(index) }
     setExpandedFixes(newExpanded)
   }
 
@@ -35,49 +30,35 @@ const FixSuggestions = ({ fixes = [] }) => {
     try {
       await navigator.clipboard.writeText(code)
       setCopiedCode(prev => new Set([...prev, index]))
-      toast.success('Code copied to clipboard!')
-      
-      // Reset copied state after 2 seconds
+      toast.success('Copied!')
       setTimeout(() => {
-        setCopiedCode(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(index)
-          return newSet
-        })
+        setCopiedCode(prev => { const s = new Set(prev); s.delete(index); return s })
       }, 2000)
     } catch (error) {
-      toast.error('Failed to copy code')
+      toast.error('Failed to copy')
     }
   }
 
   const getConfidenceLevel = (confidence) => {
-    if (confidence >= 0.9) return { label: 'Very High', color: 'text-green-400' }
+    if (confidence >= 0.9) return { label: 'Very High', color: 'text-emerald-400' }
     if (confidence >= 0.8) return { label: 'High', color: 'text-blue-400' }
     if (confidence >= 0.7) return { label: 'Medium', color: 'text-yellow-400' }
-    return { label: 'Low', color: 'text-orange-400' }
+    return { label: 'Low', color: 'text-amber-400' }
   }
 
   const getFilteredFixes = () => {
     let filtered = fixes
-
     if (filterConfidence !== 'all') {
-      const minConfidence = {
-        'high': 0.8,
-        'medium': 0.6,
-        'low': 0.0
-      }[filterConfidence]
-      
-      filtered = filtered.filter(fix => fix.confidence >= minConfidence)
+      const min = { high: 0.8, medium: 0.6, low: 0.0 }[filterConfidence]
+      filtered = filtered.filter(f => f.confidence >= min)
     }
-
     if (searchTerm) {
-      filtered = filtered.filter(fix => 
-        fix.vulnerability_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fix.explanation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fix.file_path?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(f =>
+        f.vulnerability_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.explanation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.file_path?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-
     return filtered
   }
 
@@ -85,253 +66,163 @@ const FixSuggestions = ({ fixes = [] }) => {
 
   if (fixes.length === 0) {
     return (
-      <div className="card text-center py-12">
-        <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-white mb-2">No Fix Suggestions Available</h3>
-        <p className="text-gray-400">
-          No automated fixes could be generated for the current findings.
-        </p>
+      <div className="desktop-panel text-center py-8">
+        <Wrench className="h-6 w-6 text-text-disabled mx-auto mb-2" />
+        <h3 className="text-xs font-medium text-text-primary mb-1">No Fix Suggestions</h3>
+        <p className="text-[11px] text-text-muted">No automated fixes for the current findings.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center">
-              <Wrench className="h-6 w-6 mr-3 text-primary-400" />
-              Fix Suggestions
-            </h2>
-            <p className="text-gray-400 mt-1">
-              Automated code fixes and security recommendations
-            </p>
+    <div className="space-y-4">
+      {/* Header & Filters */}
+      <div className="desktop-panel p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Wrench className="h-4 w-4 text-primary-400" />
+            <h2 className="text-sm font-semibold text-text-primary">Fix Suggestions</h2>
           </div>
-          
-          <div className="text-right">
-            <div className="text-2xl font-bold text-primary-400">{fixes.length}</div>
-            <div className="text-sm text-gray-400">Total Fixes</div>
-          </div>
+          <div className="text-sm font-semibold text-primary-400">{fixes.length}</div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search fixes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10"
-              />
-            </div>
+        <div className="flex gap-3 mb-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-disabled" />
+            <input
+              type="text"
+              placeholder="Search fixes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input text-xs py-1.5 pl-8"
+            />
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <select
-              value={filterConfidence}
-              onChange={(e) => setFilterConfidence(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">All Confidence Levels</option>
-              <option value="high">High Confidence (80%+)</option>
-              <option value="medium">Medium Confidence (60%+)</option>
-              <option value="low">Low Confidence</option>
-            </select>
-          </div>
+          <select
+            value={filterConfidence}
+            onChange={(e) => setFilterConfidence(e.target.value)}
+            className="input text-xs py-1.5 w-auto"
+          >
+            <option value="all">All Confidence</option>
+            <option value="high">High (80%+)</option>
+            <option value="medium">Medium (60%+)</option>
+            <option value="low">Low</option>
+          </select>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-500 bg-opacity-10 border border-green-500 border-opacity-20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-400 text-sm font-medium">High Confidence</p>
-                <p className="text-xl font-bold text-white">
-                  {fixes.filter(f => f.confidence >= 0.8).length}
-                </p>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'High Confidence', count: fixes.filter(f => f.confidence >= 0.8).length, color: 'text-emerald-400', icon: Star },
+            { label: 'Auto-Applicable', count: fixes.filter(f => f.confidence >= 0.9).length, color: 'text-blue-400', icon: Code },
+            { label: 'Manual Review', count: fixes.filter(f => f.confidence < 0.8).length, color: 'text-purple-400', icon: Lightbulb }
+          ].map(({ label, count, color, icon: Icon }) => (
+            <div key={label} className="p-2.5 bg-desktop-card border border-desktop-border rounded-desktop">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-[11px] ${color}`}>{label}</p>
+                  <p className="text-base font-semibold text-text-primary">{count}</p>
+                </div>
+                <Icon className={`h-4 w-4 ${color}`} />
               </div>
-              <Star className="h-6 w-6 text-green-400" />
             </div>
-          </div>
-
-          <div className="bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-400 text-sm font-medium">Auto-Applicable</p>
-                <p className="text-xl font-bold text-white">
-                  {fixes.filter(f => f.confidence >= 0.9).length}
-                </p>
-              </div>
-              <Code className="h-6 w-6 text-blue-400" />
-            </div>
-          </div>
-
-          <div className="bg-purple-500 bg-opacity-10 border border-purple-500 border-opacity-20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-400 text-sm font-medium">Manual Review</p>
-                <p className="text-xl font-bold text-white">
-                  {fixes.filter(f => f.confidence < 0.8).length}
-                </p>
-              </div>
-              <Lightbulb className="h-6 w-6 text-purple-400" />
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Fix Suggestions List */}
-      <div className="space-y-4">
+      {/* Fix List */}
+      <div className="space-y-2">
         {filteredFixes.length === 0 ? (
-          <div className="card text-center py-8">
-            <Search className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-400">No fixes match your current filters</p>
+          <div className="desktop-panel text-center py-6">
+            <Search className="h-5 w-5 text-text-disabled mx-auto mb-2" />
+            <p className="text-xs text-text-muted">No fixes match your filters</p>
           </div>
         ) : (
           filteredFixes.map((fix, index) => {
             const isExpanded = expandedFixes.has(index)
-            const confidenceLevel = getConfidenceLevel(fix.confidence)
-            
+            const confidence = getConfidenceLevel(fix.confidence)
+
             return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="card hover:border-gray-600 transition-all duration-200"
-              >
-                <div 
-                  className="cursor-pointer"
+              <div key={index} className="desktop-panel overflow-hidden">
+                <div
+                  className="px-4 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
                   onClick={() => toggleFixExpansion(index)}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-medium text-white">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="text-xs font-medium text-text-primary truncate">
                           {fix.vulnerability_type?.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </h3>
-                        <span className={`text-xs px-2 py-1 rounded-full bg-opacity-20 border border-opacity-30 ${confidenceLevel.color.replace('text-', 'bg-').replace('-400', '-500')} ${confidenceLevel.color} border-current`}>
-                          {Math.round(fix.confidence * 100)}% confidence
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-desktop border border-desktop-border ${confidence.color}`}>
+                          {Math.round(fix.confidence * 100)}%
                         </span>
                       </div>
-                      
-                      <p className="text-gray-400 mb-2">
-                        {fix.explanation}
-                      </p>
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>📁 {fix.file_path?.split('/').pop()}</span>
-                        <span>📍 Line {fix.line_number}</span>
+                      <p className="text-[11px] text-text-muted truncate">{fix.explanation}</p>
+                      <div className="flex items-center gap-3 mt-0.5 text-[10px] text-text-disabled">
+                        <span>{fix.file_path?.split('/').pop()}</span>
+                        <span>Line {fix.line_number}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-sm font-medium ${confidenceLevel.color}`}>
-                        {confidenceLevel.label}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                      )}
+
+                    <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                      <span className={`text-[11px] ${confidence.color}`}>{confidence.label}</span>
+                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5 text-text-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-text-muted" />}
                     </div>
                   </div>
                 </div>
 
-                {/* Expanded Content */}
                 {isExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="border-t border-gray-700 pt-6"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="px-4 pb-3 pt-1 border-t border-desktop-border">
+                    <div className="grid grid-cols-2 gap-3">
                       {/* Original Code */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-medium text-red-400">
-                            🔴 Original Code
-                          </h4>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h4 className="text-[11px] font-medium text-red-400">Original</h4>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyToClipboard(fix.original_code, `original-${index}`)
-                            }}
-                            className="text-xs text-gray-400 hover:text-white transition-colors duration-200 flex items-center space-x-1"
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(fix.original_code, `original-${index}`) }}
+                            className="text-[10px] text-text-muted hover:text-text-primary flex items-center gap-0.5"
                           >
-                            {copiedCode.has(`original-${index}`) ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                            <span>Copy</span>
+                            {copiedCode.has(`original-${index}`) ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
+                            Copy
                           </button>
                         </div>
-                        <div className="code-block">
-                          <pre className="text-sm text-gray-300 whitespace-pre-wrap">
-                            {fix.original_code}
-                          </pre>
-                        </div>
+                        <pre className="text-[11px] text-text-secondary bg-desktop-bg p-2.5 rounded-desktop border border-desktop-border overflow-x-auto whitespace-pre-wrap font-mono">
+                          {fix.original_code}
+                        </pre>
                       </div>
 
                       {/* Fixed Code */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-medium text-green-400">
-                            ✅ Fixed Code
-                          </h4>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h4 className="text-[11px] font-medium text-emerald-400">Fixed</h4>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyToClipboard(fix.fixed_code, `fixed-${index}`)
-                            }}
-                            className="text-xs text-gray-400 hover:text-white transition-colors duration-200 flex items-center space-x-1"
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(fix.fixed_code, `fixed-${index}`) }}
+                            className="text-[10px] text-text-muted hover:text-text-primary flex items-center gap-0.5"
                           >
-                            {copiedCode.has(`fixed-${index}`) ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                            <span>Copy</span>
+                            {copiedCode.has(`fixed-${index}`) ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
+                            Copy
                           </button>
                         </div>
-                        <div className="code-block border-green-500 border-opacity-20">
-                          <pre className="text-sm text-gray-300 whitespace-pre-wrap">
-                            {fix.fixed_code}
-                          </pre>
-                        </div>
+                        <pre className="text-[11px] text-text-secondary bg-desktop-bg p-2.5 rounded-desktop border border-emerald-400/10 overflow-x-auto whitespace-pre-wrap font-mono">
+                          {fix.fixed_code}
+                        </pre>
                       </div>
                     </div>
 
-                    {/* Additional Info */}
-                    <div className="mt-6 p-4 bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-20 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <Lightbulb className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                    {/* Notes */}
+                    <div className="mt-2.5 p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-desktop">
+                      <div className="flex items-start gap-2">
+                        <Lightbulb className="h-3.5 w-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h5 className="text-sm font-medium text-blue-400 mb-1">
-                            Implementation Notes
-                          </h5>
-                          <p className="text-sm text-gray-300">
-                            {fix.explanation}
-                          </p>
+                          <p className="text-[11px] text-text-secondary">{fix.explanation}</p>
                           {fix.confidence < 0.8 && (
-                            <p className="text-xs text-yellow-400 mt-2">
-                              ⚠️ Manual review recommended due to lower confidence score
-                            </p>
+                            <p className="text-[10px] text-yellow-400 mt-1">⚠ Manual review recommended</p>
                           )}
                         </div>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </motion.div>
+              </div>
             )
           })
         )}

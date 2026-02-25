@@ -1,11 +1,10 @@
 import React from 'react'
-import { motion } from 'framer-motion'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  Shield, 
-  Bug, 
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Shield,
+  Bug,
   Cpu,
   CheckCircle,
   Clock,
@@ -20,7 +19,6 @@ const ExecutiveSummary = ({ data }) => {
 
   const { findings = [], summary = {}, total_files = 0, total_findings = 0, total_fixes = 0 } = data
 
-  // Calculate metrics
   const criticalCount = findings.filter(f => f.severity === 'critical').length
   const highCount = findings.filter(f => f.severity === 'high').length
   const mediumCount = findings.filter(f => f.severity === 'medium').length
@@ -29,272 +27,164 @@ const ExecutiveSummary = ({ data }) => {
   const riskScore = Math.min(Math.round(((criticalCount * 10 + highCount * 7 + mediumCount * 4 + lowCount * 1) / Math.max(total_findings * 5, 1)) * 100), 100)
 
   const getRiskLevel = (score) => {
-    if (score >= 80) return { level: 'Critical', color: 'red', trend: 'up' }
-    if (score >= 60) return { level: 'High', color: 'orange', trend: 'up' }
-    if (score >= 40) return { level: 'Medium', color: 'yellow', trend: 'stable' }
-    if (score >= 20) return { level: 'Low', color: 'green', trend: 'down' }
-    return { level: 'Minimal', color: 'green', trend: 'down' }
+    if (score >= 80) return { level: 'Critical', color: 'red' }
+    if (score >= 60) return { level: 'High', color: 'orange' }
+    if (score >= 40) return { level: 'Medium', color: 'yellow' }
+    if (score >= 20) return { level: 'Low', color: 'green' }
+    return { level: 'Minimal', color: 'green' }
   }
 
   const risk = getRiskLevel(riskScore)
 
+  const riskColorMap = {
+    red: { text: 'text-red-400', bg: 'bg-red-500', border: 'border-red-400/20' },
+    orange: { text: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-400/20' },
+    yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500', border: 'border-yellow-400/20' },
+    green: { text: 'text-emerald-400', bg: 'bg-emerald-500', border: 'border-emerald-400/20' }
+  }
+  const rc = riskColorMap[risk.color] || riskColorMap.green
+
   const scanTypes = [
-    {
-      name: 'Secret Detection',
-      icon: Shield,
-      data: summary.secrets || { total: 0, by_severity: {} },
-      color: 'text-red-400',
-      description: 'Hardcoded credentials and API keys'
-    },
-    {
-      name: 'Dependency Vulnerabilities',
-      icon: Bug,
-      data: summary.dependencies || { total: 0, by_severity: {} },
-      color: 'text-orange-400',
-      description: 'Known CVEs in third-party packages'
-    },
-    {
-      name: 'AI Pattern Analysis',
-      icon: Cpu,
-      data: summary.ai_patterns || { total: 0, by_severity: {} },
-      color: 'text-blue-400',
-      description: 'Unsafe AI-generated code patterns'
-    }
+    { name: 'Secrets', icon: Shield, data: summary.secrets || { total: 0, by_severity: {} }, color: 'text-red-400', desc: 'Hardcoded credentials & API keys' },
+    { name: 'Dependencies', icon: Bug, data: summary.dependencies || { total: 0, by_severity: {} }, color: 'text-amber-400', desc: 'Known CVEs in packages' },
+    { name: 'AI Patterns', icon: Cpu, data: summary.ai_patterns || { total: 0, by_severity: {} }, color: 'text-blue-400', desc: 'Unsafe AI-generated patterns' }
   ]
 
   const recommendations = [
     {
-      priority: 'Immediate',
-      icon: AlertTriangle,
-      color: 'text-red-400',
-      items: criticalCount > 0 ? [
-        `Address ${criticalCount} critical security issue${criticalCount > 1 ? 's' : ''}`,
-        'Review and rotate any exposed credentials',
-        'Implement emergency security patches'
-      ] : ['No immediate actions required']
+      priority: 'Immediate', icon: AlertTriangle, color: 'text-red-400', borderColor: 'border-red-400/30',
+      items: criticalCount > 0
+        ? [`Address ${criticalCount} critical issue${criticalCount > 1 ? 's' : ''}`, 'Rotate exposed credentials', 'Emergency patches']
+        : ['No immediate actions required']
     },
     {
-      priority: 'Short-term',
-      icon: Target,
-      color: 'text-orange-400',
-      items: highCount > 0 ? [
-        `Fix ${highCount} high-severity vulnerability${highCount > 1 ? 'ies' : 'y'}`,
-        'Update vulnerable dependencies',
-        'Implement additional input validation'
-      ] : ['Focus on medium and low priority items']
+      priority: 'Short-term', icon: Target, color: 'text-amber-400', borderColor: 'border-amber-400/30',
+      items: highCount > 0
+        ? [`Fix ${highCount} high-severity issue${highCount > 1 ? 's' : ''}`, 'Update vulnerable deps', 'Add input validation']
+        : ['Focus on medium/low items']
     },
     {
-      priority: 'Long-term',
-      icon: Award,
-      color: 'text-green-400',
-      items: [
-        'Implement automated security scanning in CI/CD',
-        'Establish security code review processes',
-        'Regular security training for development team',
-        'Consider implementing security linting tools'
-      ]
+      priority: 'Long-term', icon: Award, color: 'text-emerald-400', borderColor: 'border-emerald-400/30',
+      items: ['Automate security scanning in CI/CD', 'Security code review processes', 'Developer security training']
     }
   ]
 
   return (
-    <div className="space-y-8">
-      {/* Executive Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Executive Summary</h2>
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="h-5 w-5 text-primary-400" />
-            <span className="text-sm text-gray-400">Security Assessment</span>
+    <div className="space-y-5">
+      {/* Overview */}
+      <div className="desktop-panel p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-text-primary">Executive Summary</h2>
+          <div className="flex items-center gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5 text-primary-400" />
+            <span className="text-[11px] text-text-muted">Security Assessment</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-4">
           {/* Key Metrics */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Key Findings</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-primary-500 bg-opacity-10 rounded-lg">
-                    <BarChart3 className="h-5 w-5 text-primary-400" />
-                  </div>
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-text-secondary mb-2">Key Findings</h3>
+            {[
+              { label: 'Files Scanned', sub: 'Total coverage', value: total_files, color: 'text-primary-400', icon: BarChart3 },
+              { label: 'Security Issues', sub: 'Vulnerabilities found', value: total_findings, color: 'text-red-400', icon: AlertTriangle },
+              { label: 'Fix Suggestions', sub: 'Automated remediation', value: total_fixes, color: 'text-emerald-400', icon: CheckCircle }
+            ].map(({ label, sub, value, color, icon: Icon }) => (
+              <div key={label} className="flex items-center justify-between p-2.5 bg-desktop-card rounded-desktop border border-desktop-border">
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`h-4 w-4 ${color}`} />
                   <div>
-                    <p className="text-white font-medium">Files Scanned</p>
-                    <p className="text-sm text-gray-400">Total codebase coverage</p>
+                    <p className="text-xs text-text-primary">{label}</p>
+                    <p className="text-[11px] text-text-disabled">{sub}</p>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white">{total_files}</div>
+                <div className={`text-base font-semibold ${color}`}>{value}</div>
               </div>
-
-              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-red-500 bg-opacity-10 rounded-lg">
-                    <AlertTriangle className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Security Issues</p>
-                    <p className="text-sm text-gray-400">Total vulnerabilities found</p>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-red-400">{total_findings}</div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-500 bg-opacity-10 rounded-lg">
-                    <CheckCircle className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Fix Suggestions</p>
-                    <p className="text-sm text-gray-400">Automated remediation available</p>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-green-400">{total_fixes}</div>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Risk Assessment */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Risk Assessment</h3>
-            
-            <div className="p-6 bg-gray-800 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-300">Overall Risk Level</span>
-                <div className="flex items-center space-x-2">
-                  {risk.trend === 'up' ? (
-                    <TrendingUp className={`h-4 w-4 text-${risk.color}-400`} />
-                  ) : risk.trend === 'down' ? (
-                    <TrendingDown className={`h-4 w-4 text-${risk.color}-400`} />
-                  ) : (
-                    <div className={`w-4 h-1 bg-${risk.color}-400 rounded`} />
-                  )}
-                  <span className={`font-medium text-${risk.color}-400`}>
-                    {risk.level}
-                  </span>
-                </div>
+            <h3 className="text-xs font-medium text-text-secondary mb-2">Risk Assessment</h3>
+            <div className="p-3 bg-desktop-card rounded-desktop border border-desktop-border h-[calc(100%-24px)]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-text-muted">Overall Risk</span>
+                <span className={`text-xs font-medium ${rc.text}`}>{risk.level}</span>
               </div>
-              
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Risk Score</span>
-                  <span className="text-white font-medium">{riskScore}/100</span>
+
+              <div className="mb-3">
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="text-text-disabled">Risk Score</span>
+                  <span className="text-text-primary font-medium">{riskScore}/100</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <motion.div
-                    className={`h-2 bg-${risk.color}-500 rounded-full`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${riskScore}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
+                <div className="w-full bg-desktop-border rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 ${rc.bg} rounded-full transition-all duration-500`}
+                    style={{ width: `${riskScore}%` }}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-400">Critical:</span>
-                  <span className="text-red-400 font-medium ml-2">{criticalCount}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">High:</span>
-                  <span className="text-orange-400 font-medium ml-2">{highCount}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Medium:</span>
-                  <span className="text-yellow-400 font-medium ml-2">{mediumCount}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Low:</span>
-                  <span className="text-green-400 font-medium ml-2">{lowCount}</span>
-                </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="flex justify-between"><span className="text-text-disabled">Critical:</span><span className="text-red-400 font-medium">{criticalCount}</span></div>
+                <div className="flex justify-between"><span className="text-text-disabled">High:</span><span className="text-amber-400 font-medium">{highCount}</span></div>
+                <div className="flex justify-between"><span className="text-text-disabled">Medium:</span><span className="text-yellow-400 font-medium">{mediumCount}</span></div>
+                <div className="flex justify-between"><span className="text-text-disabled">Low:</span><span className="text-emerald-400 font-medium">{lowCount}</span></div>
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Scan Type Breakdown */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card"
-      >
-        <h3 className="text-xl font-semibold text-white mb-6">Security Analysis Breakdown</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary mb-3">Analysis Breakdown</h3>
+        <div className="grid grid-cols-3 gap-3">
           {scanTypes.map((scanType, index) => {
             const Icon = scanType.icon
             const { total = 0, by_severity = {} } = scanType.data
-            
             return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + index * 0.1 }}
-                className="bg-gray-800 rounded-lg p-6"
-              >
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className={`p-2 ${scanType.color.replace('text-', 'bg-').replace('-400', '-500')} bg-opacity-10 rounded-lg`}>
-                    <Icon className={`h-5 w-5 ${scanType.color}`} />
-                  </div>
+              <div key={index} className="p-3 bg-desktop-card rounded-desktop border border-desktop-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={`h-3.5 w-3.5 ${scanType.color}`} />
                   <div>
-                    <h4 className="font-medium text-white">{scanType.name}</h4>
-                    <p className="text-xs text-gray-400">{scanType.description}</p>
+                    <h4 className="text-xs font-medium text-text-primary">{scanType.name}</h4>
+                    <p className="text-[10px] text-text-disabled">{scanType.desc}</p>
                   </div>
                 </div>
-                
-                <div className="text-center mb-4">
-                  <div className={`text-3xl font-bold ${scanType.color}`}>{total}</div>
-                  <div className="text-sm text-gray-400">Issues Found</div>
-                </div>
-                
+                <div className={`text-lg font-semibold ${scanType.color} mb-1`}>{total}</div>
                 {total > 0 && (
-                  <div className="space-y-2">
-                    {Object.entries(by_severity).map(([severity, count]) => (
-                      <div key={severity} className="flex justify-between text-sm">
-                        <span className="text-gray-400 capitalize">{severity}:</span>
-                        <span className="text-white font-medium">{count}</span>
+                  <div className="space-y-0.5">
+                    {Object.entries(by_severity).map(([sev, count]) => (
+                      <div key={sev} className="flex justify-between text-[11px]">
+                        <span className="text-text-disabled capitalize">{sev}</span>
+                        <span className="text-text-secondary">{count}</span>
                       </div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             )
           })}
         </div>
-      </motion.div>
+      </div>
 
       {/* Recommendations */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="card"
-      >
-        <h3 className="text-xl font-semibold text-white mb-6">Recommended Actions</h3>
-        
-        <div className="space-y-6">
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary mb-3">Recommended Actions</h3>
+        <div className="space-y-3">
           {recommendations.map((rec, index) => {
             const Icon = rec.icon
-            
             return (
-              <div key={index} className="border-l-4 border-gray-600 pl-6">
-                <div className="flex items-center space-x-3 mb-3">
-                  <Icon className={`h-5 w-5 ${rec.color}`} />
-                  <h4 className={`font-medium ${rec.color}`}>{rec.priority} Actions</h4>
+              <div key={index} className={`border-l-2 ${rec.borderColor} pl-3`}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Icon className={`h-3.5 w-3.5 ${rec.color}`} />
+                  <h4 className={`text-xs font-medium ${rec.color}`}>{rec.priority}</h4>
                 </div>
-                
-                <ul className="space-y-2">
-                  {rec.items.map((item, itemIndex) => (
-                    <li key={itemIndex} className="flex items-start space-x-2 text-sm text-gray-300">
-                      <span className="text-gray-500 mt-1">•</span>
+                <ul className="space-y-0.5">
+                  {rec.items.map((item, i) => (
+                    <li key={i} className="text-[11px] text-text-secondary flex items-start gap-1.5">
+                      <span className="text-text-disabled mt-px">•</span>
                       <span>{item}</span>
                     </li>
                   ))}
@@ -303,16 +193,10 @@ const ExecutiveSummary = ({ data }) => {
             )
           })}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Risk Meter Component */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <RiskMeter findings={findings} />
-      </motion.div>
+      {/* Risk Meter */}
+      <RiskMeter findings={findings} />
     </div>
   )
 }

@@ -8,14 +8,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Core Palette
-        background: '#000000',
-        surface: '#050505',
-        'surface-highlight': '#0A0A0A',
-        
+        // Desktop Surface System
+        'desktop-bg': '#0a0a0a',
+        'desktop-sidebar': '#111111',
+        'desktop-card': '#161616',
+        'desktop-card-hover': '#1c1c1c',
+        'desktop-elevated': '#1e1e1e',
+        'desktop-border': '#222222',
+        'desktop-border-light': '#2a2a2a',
+        'desktop-input': '#141414',
+
+        // Text Hierarchy
+        'text-primary': '#e4e4e7',
+        'text-secondary': '#a1a1aa',
+        'text-muted': '#71717a',
+        'text-disabled': '#52525b',
+
         // Brand Colors
         primary: {
-          DEFAULT: '#06b6d4', // Cyan-500
+          DEFAULT: '#06b6d4',
           50: '#ecfeff',
           100: '#cffafe',
           200: '#a5f3fc',
@@ -28,37 +39,32 @@ export default {
           900: '#164e63',
           950: '#083344',
         },
-        secondary: '#3b82f6', // Blue-500
-        
+        secondary: '#3b82f6',
+
         // Status Colors
-        success: '#10b981', // Emerald-500
-        warning: '#f59e0b', // Amber-500
-        danger: '#ef4444',  // Red-500
-        info: '#3b82f6',    // Blue-500
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        info: '#3b82f6',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
       },
-      boxShadow: {
-        'glow': '0 0 20px rgba(6, 182, 212, 0.3)',
-        'glow-lg': '0 0 40px rgba(6, 182, 212, 0.4)',
-        'glow-sm': '0 0 10px rgba(6, 182, 212, 0.2)',
+      fontSize: {
+        'xxs': '0.625rem',
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-glow': 'radial-gradient(circle at center, rgba(6,182,212,0.15) 0%, rgba(0,0,0,0) 70%)',
+      spacing: {
+        'sidebar': '240px',
+        'sidebar-collapsed': '56px',
+        'toolbar': '44px',
+      },
+      borderRadius: {
+        'desktop': '6px',
       },
       animation: {
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
+        'spin-slow': 'spin 3s linear infinite',
       },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
-        }
-      }
     },
   },
   plugins: [],

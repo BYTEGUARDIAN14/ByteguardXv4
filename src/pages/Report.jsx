@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
   FileText,
@@ -20,13 +19,10 @@ import {
   Lock,
   Zap
 } from 'lucide-react'
-import Sidebar from '../components/layout/Sidebar'
-import Header from '../components/layout/Header'
 import GlassCard from '../components/ui/GlassCard'
 import Button from '../components/ui/Button'
 import { SkeletonLoader } from '../components/ui/LoadingStates'
 import { CircularProgress } from '../components/ui/ProgressIndicator'
-import { staggerContainer, staggerItem, slideUp } from '../utils/animations'
 import ScanResults from '../components/ScanResults'
 import FixSuggestions from '../components/FixSuggestions'
 import ExecutiveSummary from '../components/ExecutiveSummary'
@@ -38,7 +34,6 @@ const { scan: scanService } = apiService
 const Report = () => {
   const { scanId } = useParams()
   const location = useLocation()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [reportData, setReportData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('summary')
@@ -46,15 +41,12 @@ const Report = () => {
   const [filterSeverity, setFilterSeverity] = useState('all')
 
   useEffect(() => {
-    // Try to get data from navigation state first
     if (location.state?.scanResults) {
       setReportData(location.state.scanResults)
       setLoading(false)
     } else if (scanId) {
-      // Fetch data from API if scanId is provided
       fetchReportData(scanId)
     } else {
-      // Load sample data for demo
       loadSampleData()
     }
   }, [scanId, location.state])
@@ -66,14 +58,13 @@ const Report = () => {
     } catch (error) {
       console.error('Failed to fetch report data:', error)
       toast.error('Failed to load report data')
-      loadSampleData() // Fallback to sample data
+      loadSampleData()
     } finally {
       setLoading(false)
     }
   }
 
   const loadSampleData = () => {
-    // Sample data for demonstration
     const sampleData = {
       scan_id: 'sample-scan-123',
       timestamp: new Date().toISOString(),
@@ -144,15 +135,12 @@ const Report = () => {
     setIsGeneratingPDF(true)
     try {
       const response = await scanService.generatePDFReport(reportData.scan_id)
-      
-      // Create download link
       const link = document.createElement('a')
       link.href = response.download_url
       link.download = `byteguardx-report-${reportData.scan_id}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
       toast.success('PDF report generated successfully!')
     } catch (error) {
       console.error('PDF generation failed:', error)
@@ -174,33 +162,23 @@ const Report = () => {
         // User cancelled sharing
       }
     } else {
-      // Fallback: copy URL to clipboard
       navigator.clipboard.writeText(window.location.href)
       toast.success('Report URL copied to clipboard!')
     }
   }
 
   const tabs = [
-    { id: 'summary', label: 'Executive Summary', icon: Eye },
-    { id: 'findings', label: 'Detailed Findings', icon: AlertTriangle },
-    { id: 'fixes', label: 'Fix Suggestions', icon: Wrench }
+    { id: 'summary', label: 'Summary', icon: Eye },
+    { id: 'findings', label: 'Findings', icon: AlertTriangle },
+    { id: 'fixes', label: 'Fixes', icon: Wrench }
   ]
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <Sidebar
-          isCollapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-
-        <div className={`
-          transition-all duration-300 pt-16
-          ${sidebarCollapsed ? 'ml-20' : 'ml-72'}
-        `}>
-          <div className="p-8">
-            <SkeletonLoader lines={8} height="h-6" />
-          </div>
+      <div className="p-6">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-text-muted">Loading report...</span>
         </div>
       </div>
     )
@@ -208,12 +186,12 @@ const Report = () => {
 
   if (!reportData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="p-6 flex items-center justify-center h-full">
         <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">Report Not Found</h2>
-          <p className="text-gray-400 mb-6">The requested report could not be loaded.</p>
-          <Link to="/scan" className="btn-primary">
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
+          <h2 className="text-sm font-semibold text-text-primary mb-1">Report Not Found</h2>
+          <p className="text-xs text-text-muted mb-4">The requested report could not be loaded.</p>
+          <Link to="/scan" className="btn-primary text-xs px-4 py-2">
             Start New Scan
           </Link>
         </div>
@@ -222,183 +200,115 @@ const Report = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <Header
-        onMenuToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        sidebarCollapsed={sidebarCollapsed}
-      />
-
-      <main className={`
-        transition-all duration-300 pt-16
-        ${sidebarCollapsed ? 'ml-20' : 'ml-72'}
-      `}>
-        <div className="p-8">
-          {/* Header */}
-          <motion.div
-            className="mb-8"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
+    <div className="p-6 space-y-5 overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.history.back()}
+            className="p-1.5 rounded-desktop text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors"
           >
-            <motion.div variants={staggerItem}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={ArrowLeft}
-                    onClick={() => window.history.back()}
-                  >
-                    Back
-                  </Button>
-                  <div>
-                    <h1 className="text-3xl font-bold text-white">Security Report</h1>
-                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {new Date(reportData.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
-                  <div className="flex items-center space-x-1">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {new Date(reportData.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <FileCode className="h-4 w-4" />
-                    <span>{reportData.total_files} files scanned</span>
-                  </div>
-                </div>
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-lg font-semibold text-text-primary">Security Report</h1>
+            <div className="flex items-center gap-3 mt-0.5 text-xs text-text-muted">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>{new Date(reportData.timestamp).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{new Date(reportData.timestamp).toLocaleTimeString()}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <FileCode className="h-3 w-3" />
+                <span>{reportData.total_files} files</span>
               </div>
             </div>
-
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleShare}
-                className="btn-ghost"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </button>
-              
-              <button
-                onClick={handleGeneratePDF}
-                disabled={isGeneratingPDF}
-                className="btn-primary"
-              >
-                {isGeneratingPDF ? (
-                  <>
-                    <div className="spinner w-4 h-4 mr-2"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </>
-                )}
-              </button>
-            </div>
           </div>
-            </motion.div>
-        </motion.div>
-
-        {/* Quick Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-        >
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-white mb-2">
-              {reportData.total_findings}
-            </div>
-            <div className="text-gray-400">Total Issues</div>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-red-400 mb-2">
-              {reportData.findings?.filter(f => f.severity === 'critical').length || 0}
-            </div>
-            <div className="text-gray-400">Critical</div>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-orange-400 mb-2">
-              {reportData.findings?.filter(f => f.severity === 'high').length || 0}
-            </div>
-            <div className="text-gray-400">High Risk</div>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-primary-400 mb-2">
-              {reportData.total_fixes || 0}
-            </div>
-            <div className="text-gray-400">Fix Suggestions</div>
-          </div>
-        </motion.div>
-
-        {/* Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="border-b border-gray-700">
-            <nav className="flex space-x-8">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200
-                      ${activeTab === tab.id
-                        ? 'border-primary-500 text-primary-400'
-                        : 'border-transparent text-gray-400 hover:text-gray-300'
-                      }
-                    `}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {activeTab === 'summary' && (
-            <ExecutiveSummary data={reportData} />
-          )}
-          
-          {activeTab === 'findings' && (
-            <ScanResults results={reportData} />
-          )}
-          
-          {activeTab === 'fixes' && (
-            <FixSuggestions fixes={reportData.fixes || []} />
-          )}
-        </motion.div>
         </div>
-      </main>
+
+        <div className="flex items-center gap-2">
+          <button onClick={handleShare} className="btn-ghost text-xs px-3 py-1.5">
+            <Share2 className="h-3.5 w-3.5 mr-1.5" />
+            Share
+          </button>
+          <button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="btn-primary text-xs px-3 py-1.5"
+          >
+            {isGeneratingPDF ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Download PDF
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="desktop-panel p-3 text-center">
+          <div className="text-xl font-semibold text-text-primary">{reportData.total_findings}</div>
+          <div className="text-xs text-text-muted">Total Issues</div>
+        </div>
+        <div className="desktop-panel p-3 text-center">
+          <div className="text-xl font-semibold text-red-400">
+            {reportData.findings?.filter(f => f.severity === 'critical').length || 0}
+          </div>
+          <div className="text-xs text-text-muted">Critical</div>
+        </div>
+        <div className="desktop-panel p-3 text-center">
+          <div className="text-xl font-semibold text-amber-400">
+            {reportData.findings?.filter(f => f.severity === 'high').length || 0}
+          </div>
+          <div className="text-xs text-text-muted">High Risk</div>
+        </div>
+        <div className="desktop-panel p-3 text-center">
+          <div className="text-xl font-semibold text-primary-400">{reportData.total_fixes || 0}</div>
+          <div className="text-xs text-text-muted">Fix Suggestions</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-desktop-border">
+        <nav className="flex gap-4">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  flex items-center gap-1.5 py-2 px-1 border-b-2 text-xs font-medium transition-colors
+                  ${activeTab === tab.id
+                    ? 'border-primary-500 text-primary-400'
+                    : 'border-transparent text-text-muted hover:text-text-secondary'
+                  }
+                `}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'summary' && <ExecutiveSummary data={reportData} />}
+        {activeTab === 'findings' && <ScanResults results={reportData} />}
+        {activeTab === 'fixes' && <FixSuggestions fixes={reportData.fixes || []} />}
+      </div>
     </div>
   )
 }
