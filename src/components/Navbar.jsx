@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Shield, Menu, X, Scan, FileText, LayoutDashboard, Settings, Puzzle } from 'lucide-react'
 
 const Navbar = () => {
@@ -15,111 +14,60 @@ const Navbar = () => {
     { name: 'Settings', href: '/settings', icon: Settings },
   ]
 
-  const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/'
-    }
-    return location.pathname.startsWith(path)
-  }
+  const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   return (
-    <nav className="sticky top-0 z-50 bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800">
+    <nav className="sticky top-0 z-50 bg-desktop-panel border-b border-desktop-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-1.5 bg-neutral-800 rounded-lg group-hover:bg-neutral-700 transition-colors"
-            >
-              <Shield className="h-5 w-5 text-cyan-400" />
-            </motion.div>
+        <div className="flex justify-between items-center h-12">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="p-1 bg-white/[0.04] rounded-desktop group-hover:bg-white/[0.06] transition-colors">
+              <Shield className="h-4 w-4 text-primary-400" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-lg font-semibold text-white tracking-tight">ByteGuardX</span>
-              <span className="text-[10px] text-neutral-400 -mt-1 font-medium tracking-wide">OFFLINE SECURITY SCANNER</span>
+              <span className="text-sm font-semibold text-text-primary tracking-tight">ByteGuardX</span>
+              <span className="text-[9px] text-text-disabled -mt-0.5 font-medium tracking-wide">OFFLINE SECURITY SCANNER</span>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`
-                    flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${isActive(item.href)
-                      ? 'bg-neutral-800 text-white'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
-                    }
-                  `}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
+          <div className="hidden md:flex items-center gap-0.5">
+            {navigation.map(({ name, href, icon: Icon }) => (
+              <Link key={name} to={href}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-desktop text-xs font-medium transition-colors ${isActive(href) ? 'bg-primary-500/10 text-primary-400' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.03]'
+                  }`}>
+                <Icon className="h-3.5 w-3.5" />
+                <span>{name}</span>
+              </Link>
+            ))}
           </div>
 
-          {/* App Version Badge */}
           <div className="hidden md:flex items-center">
-            <span className="text-xs text-neutral-500 bg-neutral-800/50 px-2 py-1 rounded font-mono">
-              v2.0.0
-            </span>
+            <span className="text-[10px] text-text-disabled bg-white/[0.03] px-1.5 py-0.5 rounded-desktop font-mono">v2.0.0</span>
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-            >
-              {isOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+            <button onClick={() => setIsOpen(!isOpen)}
+              className="p-1.5 rounded-desktop text-text-muted hover:text-text-primary hover:bg-white/[0.03] transition-colors">
+              {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <motion.div
-        initial={false}
-        animate={{
-          height: isOpen ? 'auto' : 0,
-          opacity: isOpen ? 1 : 0,
-        }}
-        transition={{ duration: 0.2 }}
-        className="md:hidden overflow-hidden bg-neutral-900 border-t border-neutral-800"
-      >
-        <div className="px-4 py-3 space-y-1">
-          {navigation.map((item) => {
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={() => setIsOpen(false)}
-                className={`
-                  flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${isActive(item.href)
-                    ? 'bg-neutral-800 text-white'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
-                  }
-                `}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.name}</span>
+      {isOpen && (
+        <div className="md:hidden border-t border-desktop-border bg-desktop-panel">
+          <div className="px-3 py-2 space-y-0.5">
+            {navigation.map(({ name, href, icon: Icon }) => (
+              <Link key={name} to={href} onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-desktop text-xs font-medium transition-colors ${isActive(href) ? 'bg-primary-500/10 text-primary-400' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.03]'
+                  }`}>
+                <Icon className="h-3.5 w-3.5" />
+                <span>{name}</span>
               </Link>
-            )
-          })}
+            ))}
+          </div>
         </div>
-      </motion.div>
+      )}
     </nav>
   )
 }

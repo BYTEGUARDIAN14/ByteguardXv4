@@ -1,21 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Users,
-  Shield,
-  Activity,
-  BarChart3,
-  Settings,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Search,
-  Filter,
-  Download,
-  Eye,
-  UserCheck,
-  UserX,
-  Crown
+  Users, Shield, Activity, BarChart3, Settings, AlertTriangle,
+  CheckCircle, Clock, Search, Filter, Download, Eye, UserCheck, UserX, Crown
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -28,142 +14,71 @@ const AdminDashboard = () => {
   const [scans, setScans] = useState([])
   const [auditLogs, setAuditLogs] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [filters, setFilters] = useState({
-    userRole: '',
-    userStatus: '',
-    scanStatus: '',
-    logAction: ''
-  })
+  const [filters, setFilters] = useState({ userRole: '', userStatus: '', scanStatus: '', logAction: '' })
 
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      return
-    }
-    
-    fetchAdminData()
-  }, [user])
+  useEffect(() => { if (user?.role === 'admin') fetchAdminData() }, [user])
 
   const fetchAdminData = async () => {
     try {
       setLoading(true)
-      
-      // Fetch admin statistics
-      const statsResponse = await fetch('/api/admin/stats', {
-        credentials: 'include'
-      })
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
-        setStats(statsData)
-      }
-
-      // Fetch users
-      const usersResponse = await fetch('/api/admin/users?per_page=50', {
-        credentials: 'include'
-      })
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json()
-        setUsers(usersData.users || [])
-      }
-
-      // Fetch scans
-      const scansResponse = await fetch('/api/admin/scans?per_page=20', {
-        credentials: 'include'
-      })
-      if (scansResponse.ok) {
-        const scansData = await scansResponse.json()
-        setScans(scansData.scans || [])
-      }
-
-      // Fetch audit logs
-      const logsResponse = await fetch('/api/admin/activity?per_page=30', {
-        credentials: 'include'
-      })
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json()
-        setAuditLogs(logsData.logs || [])
-      }
-
-    } catch (error) {
-      console.error('Error fetching admin data:', error)
-    } finally {
-      setLoading(false)
-    }
+      const [statsRes, usersRes, scansRes, logsRes] = await Promise.all([
+        fetch('/api/admin/stats', { credentials: 'include' }),
+        fetch('/api/admin/users?per_page=50', { credentials: 'include' }),
+        fetch('/api/admin/scans?per_page=20', { credentials: 'include' }),
+        fetch('/api/admin/activity?per_page=30', { credentials: 'include' })
+      ])
+      if (statsRes.ok) setStats(await statsRes.json())
+      if (usersRes.ok) { const d = await usersRes.json(); setUsers(d.users || []) }
+      if (scansRes.ok) { const d = await scansRes.json(); setScans(d.scans || []) }
+      if (logsRes.ok) { const d = await logsRes.json(); setAuditLogs(d.logs || []) }
+    } catch (error) { console.error('Error fetching admin data:', error) }
+    finally { setLoading(false) }
   }
 
   const updateUserRole = async (userId, newRole) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ role: newRole })
+      const r = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ role: newRole })
       })
-
-      if (response.ok) {
-        fetchAdminData() // Refresh data
-      }
-    } catch (error) {
-      console.error('Error updating user role:', error)
-    }
+      if (r.ok) fetchAdminData()
+    } catch (e) { console.error('Error updating user role:', e) }
   }
 
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ is_active: !currentStatus })
+      const r = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ is_active: !currentStatus })
       })
-
-      if (response.ok) {
-        fetchAdminData() // Refresh data
-      }
-    } catch (error) {
-      console.error('Error updating user status:', error)
-    }
+      if (r.ok) fetchAdminData()
+    } catch (e) { console.error('Error updating user status:', e) }
   }
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.username.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = !filters.userRole || user.role === filters.userRole
-    const matchesStatus = !filters.userStatus || 
-                         (filters.userStatus === 'active' && user.is_active) ||
-                         (filters.userStatus === 'inactive' && !user.is_active)
-    
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) || u.username.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = !filters.userRole || u.role === filters.userRole
+    const matchesStatus = !filters.userStatus || (filters.userStatus === 'active' && u.is_active) || (filters.userStatus === 'inactive' && !u.is_active)
     return matchesSearch && matchesRole && matchesStatus
   })
 
-  const filteredScans = scans.filter(scan => {
-    const matchesSearch = scan.directory_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         scan.user_email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = !filters.scanStatus || scan.status === filters.scanStatus
-    
-    return matchesSearch && matchesStatus
+  const filteredScans = scans.filter(s => {
+    const matchesSearch = s.directory_path.toLowerCase().includes(searchTerm.toLowerCase()) || s.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesSearch && (!filters.scanStatus || s.status === filters.scanStatus)
   })
 
-  const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (log.user_email && log.user_email.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesAction = !filters.logAction || log.action.includes(filters.logAction)
-    
-    return matchesSearch && matchesAction
+  const filteredLogs = auditLogs.filter(l => {
+    const matchesSearch = l.action.toLowerCase().includes(searchTerm.toLowerCase()) || (l.user_email && l.user_email.toLowerCase().includes(searchTerm.toLowerCase()))
+    return matchesSearch && (!filters.logAction || l.action.includes(filters.logAction))
   })
 
   if (user?.role !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card text-center p-8">
-          <div className="text-red-400 text-6xl mb-4">🚫</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-          <p className="text-gray-400">
-            You don't have permission to access the admin dashboard.
-          </p>
+      <div className="flex items-center justify-center h-full">
+        <div className="desktop-panel p-6 text-center">
+          <div className="text-red-400 text-3xl mb-2">🚫</div>
+          <h2 className="text-sm font-semibold text-text-primary mb-1">Access Denied</h2>
+          <p className="text-xs text-text-muted">You don't have admin permissions.</p>
         </div>
       </div>
     )
@@ -171,10 +86,10 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-white">Loading admin dashboard...</p>
+      <div className="flex items-center justify-center h-full">
+        <div className="desktop-panel p-6 text-center">
+          <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs text-text-muted">Loading admin data...</p>
         </div>
       </div>
     )
@@ -187,144 +102,78 @@ const AdminDashboard = () => {
     { id: 'activity', label: 'Activity', icon: Activity }
   ]
 
+  const statusBadge = (status, type = 'scan') => {
+    const colors = {
+      completed: 'border-emerald-400/15 text-emerald-400', running: 'border-blue-400/15 text-blue-400',
+      active: 'border-emerald-400/15 text-emerald-400', inactive: 'border-red-400/15 text-red-400',
+      true: 'border-emerald-400/15 text-emerald-400', false: 'border-red-400/15 text-red-400'
+    }
+    const label = type === 'bool' ? (status ? 'Success' : 'Failed') : status
+    const key = type === 'bool' ? String(status) : (status || '')
+    return (
+      <span className={`text-[10px] px-1.5 py-0.5 rounded-desktop border ${colors[key] || 'border-desktop-border text-text-disabled'}`}>
+        {typeof label === 'string' ? label : String(label)}
+      </span>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="p-6 space-y-4 overflow-y-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text mb-2">Admin Dashboard</h1>
-        <p className="text-gray-400">System administration and monitoring</p>
+      <div>
+        <h1 className="text-lg font-semibold text-text-primary">Admin Dashboard</h1>
+        <p className="text-xs text-text-muted mt-0.5">System administration and monitoring</p>
       </div>
 
-      {/* Stats Overview */}
+      {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-white">{stats.users.total}</p>
-                <p className="text-green-400 text-sm">
-                  {stats.users.active} active
-                </p>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: 'Total Users', value: stats.users.total, sub: `${stats.users.active} active`, icon: Users, subColor: 'text-emerald-400' },
+            { label: 'Total Scans', value: stats.scans.total, sub: `${stats.scans.this_month} this month`, icon: Shield, subColor: 'text-blue-400' },
+            { label: 'Critical', value: stats.findings.critical, sub: `${stats.findings.total} total`, icon: AlertTriangle, subColor: 'text-red-400' },
+            { label: 'Recent Logins', value: stats.activity.recent_logins_24h, sub: 'Last 24h', icon: Activity, subColor: 'text-yellow-400' }
+          ].map(({ label, value, sub, icon: Icon, subColor }) => (
+            <div key={label} className="desktop-panel p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] text-text-disabled">{label}</p>
+                <Icon className="h-3.5 w-3.5 text-primary-400" />
               </div>
-              <Users className="h-8 w-8 text-cyan-400" />
+              <p className="text-lg font-semibold text-text-primary">{value}</p>
+              <p className={`text-[10px] ${subColor}`}>{sub}</p>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Scans</p>
-                <p className="text-2xl font-bold text-white">{stats.scans.total}</p>
-                <p className="text-blue-400 text-sm">
-                  {stats.scans.this_month} this month
-                </p>
-              </div>
-              <Shield className="h-8 w-8 text-cyan-400" />
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Critical Findings</p>
-                <p className="text-2xl font-bold text-white">{stats.findings.critical}</p>
-                <p className="text-red-400 text-sm">
-                  {stats.findings.total} total findings
-                </p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-400" />
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Recent Logins</p>
-                <p className="text-2xl font-bold text-white">{stats.activity.recent_logins_24h}</p>
-                <p className="text-yellow-400 text-sm">
-                  Last 24 hours
-                </p>
-              </div>
-              <Activity className="h-8 w-8 text-cyan-400" />
-            </div>
-          </motion.div>
+          ))}
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 mb-8 bg-gray-900/50 p-1 rounded-lg">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200
-                ${activeTab === tab.id
-                  ? 'bg-cyan-500 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                }
-              `}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
+      {/* Tab Nav */}
+      <div className="flex gap-1 border-b border-desktop-border">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium border-b-2 transition-colors ${activeTab === id ? 'border-primary-500 text-primary-400' : 'border-transparent text-text-muted hover:text-text-secondary'
+              }`}
+          >
+            <Icon className="h-3 w-3" /> {label}
+          </button>
+        ))}
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+      {/* Search + Filters */}
+      <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
-          />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-disabled" />
+          <input type="text" placeholder="Search..." value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} className="input text-xs py-1.5 pl-8" />
         </div>
-        
         {activeTab === 'users' && (
           <>
-            <select
-              value={filters.userRole}
-              onChange={(e) => setFilters(prev => ({ ...prev, userRole: e.target.value }))}
-              className="px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-            >
+            <select value={filters.userRole} onChange={(e) => setFilters(p => ({ ...p, userRole: e.target.value }))} className="input text-xs py-1.5 w-auto">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="developer">Developer</option>
               <option value="viewer">Viewer</option>
             </select>
-            
-            <select
-              value={filters.userStatus}
-              onChange={(e) => setFilters(prev => ({ ...prev, userStatus: e.target.value }))}
-              className="px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-            >
+            <select value={filters.userStatus} onChange={(e) => setFilters(p => ({ ...p, userStatus: e.target.value }))} className="input text-xs py-1.5 w-auto">
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -334,271 +183,178 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tab Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === 'overview' && (
-            <div className="glass-card p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">System Overview</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-lg font-medium text-white mb-3">Recent Activity</h4>
-                  <div className="space-y-3">
-                    {auditLogs.slice(0, 5).map((log, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 bg-gray-900/30 rounded-lg">
-                        <Activity className="h-4 w-4 text-cyan-400" />
-                        <div className="flex-1">
-                          <p className="text-white text-sm">{log.action}</p>
-                          <p className="text-gray-400 text-xs">
-                            {log.user_email} • {new Date(log.timestamp).toLocaleString()}
-                          </p>
-                        </div>
+      <div>
+        {activeTab === 'overview' && (
+          <div className="desktop-panel p-4">
+            <h3 className="text-xs font-semibold text-text-secondary mb-3">System Overview</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-[11px] font-medium text-text-muted mb-2">Recent Activity</h4>
+                <div className="space-y-1">
+                  {auditLogs.slice(0, 5).map((log, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 bg-desktop-card rounded-desktop border border-desktop-border">
+                      <Activity className="h-3 w-3 text-primary-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-text-primary truncate">{log.action}</p>
+                        <p className="text-[10px] text-text-disabled">{log.user_email} · {new Date(log.timestamp).toLocaleString()}</p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                
-                <div>
-                  <h4 className="text-lg font-medium text-white mb-3">Recent Scans</h4>
-                  <div className="space-y-3">
-                    {scans.slice(0, 5).map((scan, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 bg-gray-900/30 rounded-lg">
-                        <Shield className="h-4 w-4 text-cyan-400" />
-                        <div className="flex-1">
-                          <p className="text-white text-sm">{scan.directory_path}</p>
-                          <p className="text-gray-400 text-xs">
-                            {scan.user_email} • {scan.total_findings} findings
-                          </p>
-                        </div>
-                        <span className={`
-                          px-2 py-1 rounded-full text-xs
-                          ${scan.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                            scan.status === 'running' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-red-500/20 text-red-400'}
-                        `}>
-                          {scan.status}
-                        </span>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-medium text-text-muted mb-2">Recent Scans</h4>
+                <div className="space-y-1">
+                  {scans.slice(0, 5).map((scan, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 bg-desktop-card rounded-desktop border border-desktop-border">
+                      <Shield className="h-3 w-3 text-primary-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-text-primary truncate">{scan.directory_path}</p>
+                        <p className="text-[10px] text-text-disabled">{scan.user_email} · {scan.total_findings} findings</p>
                       </div>
-                    ))}
-                  </div>
+                      {statusBadge(scan.status)}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'users' && (
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">User Management</h3>
-                <button className="btn-primary">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Users
-                </button>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 text-gray-400">User</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Role</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Status</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Scans</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Last Activity</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-900/30">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="text-white font-medium">{user.email}</p>
-                            <p className="text-gray-400 text-sm">@{user.username}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <select
-                            value={user.role}
-                            onChange={(e) => updateUserRole(user.id, e.target.value)}
-                            className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                          >
-                            <option value="viewer">Viewer</option>
-                            <option value="developer">Developer</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`
-                            px-2 py-1 rounded-full text-xs
-                            ${user.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}
-                          `}>
-                            {user.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-white">{user.total_scans}</td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">
-                          {user.last_activity ? new Date(user.last_activity).toLocaleDateString() : 'Never'}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => toggleUserStatus(user.id, user.is_active)}
-                              className={`
-                                p-1 rounded transition-colors
-                                ${user.is_active 
-                                  ? 'text-red-400 hover:bg-red-500/20' 
-                                  : 'text-green-400 hover:bg-green-500/20'
-                                }
-                              `}
-                              title={user.is_active ? 'Deactivate User' : 'Activate User'}
-                            >
-                              {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                            </button>
-                            <button
-                              className="p-1 rounded text-cyan-400 hover:bg-cyan-500/20 transition-colors"
-                              title="View User Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {activeTab === 'users' && (
+          <div className="desktop-panel">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-desktop-border">
+              <h3 className="text-xs font-semibold text-text-secondary">User Management</h3>
+              <button className="btn-ghost text-xs px-2.5 py-1 inline-flex items-center gap-1">
+                <Download className="h-3 w-3" /> Export
+              </button>
             </div>
-          )}
-
-          {activeTab === 'scans' && (
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">Scan Management</h3>
-                <button className="btn-primary">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Scans
-                </button>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 text-gray-400">Directory</th>
-                      <th className="text-left py-3 px-4 text-gray-400">User</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Status</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Findings</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Created</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredScans.map((scan) => (
-                      <tr key={scan.id} className="border-b border-gray-800 hover:bg-gray-900/30">
-                        <td className="py-3 px-4">
-                          <p className="text-white font-medium">{scan.directory_path}</p>
-                          <p className="text-gray-400 text-sm">ID: {scan.scan_id}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-white">{scan.user_email}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`
-                            px-2 py-1 rounded-full text-xs
-                            ${scan.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                              scan.status === 'running' ? 'bg-blue-500/20 text-blue-400' :
-                              'bg-red-500/20 text-red-400'}
-                          `}>
-                            {scan.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-white">
-                            <span className="text-red-400">{scan.critical_findings}</span> / 
-                            <span className="text-yellow-400">{scan.high_findings}</span> / 
-                            <span className="text-blue-400">{scan.medium_findings}</span> / 
-                            <span className="text-green-400">{scan.low_findings}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">
-                          {new Date(scan.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4">
-                          <button
-                            className="p-1 rounded text-cyan-400 hover:bg-cyan-500/20 transition-colors"
-                            title="View Scan Details"
-                          >
-                            <Eye className="h-4 w-4" />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-desktop-border">
+                    {['User', 'Role', 'Status', 'Scans', 'Last Activity', 'Actions'].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-text-disabled uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id} className="border-b border-desktop-border hover:bg-white/[0.02] transition-colors">
+                      <td className="py-2 px-3">
+                        <p className="text-xs text-text-primary">{u.email}</p>
+                        <p className="text-[10px] text-text-disabled">@{u.username}</p>
+                      </td>
+                      <td className="py-2 px-3">
+                        <select value={u.role} onChange={(e) => updateUserRole(u.id, e.target.value)}
+                          className="input text-[11px] py-0.5 w-auto">
+                          <option value="viewer">Viewer</option>
+                          <option value="developer">Developer</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="py-2 px-3">{statusBadge(u.is_active ? 'active' : 'inactive')}</td>
+                      <td className="py-2 px-3 text-xs text-text-primary">{u.total_scans}</td>
+                      <td className="py-2 px-3 text-[10px] text-text-disabled">
+                        {u.last_activity ? new Date(u.last_activity).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="flex gap-0.5">
+                          <button onClick={() => toggleUserStatus(u.id, u.is_active)}
+                            className={`p-1 rounded transition-colors ${u.is_active ? 'text-red-400 hover:bg-red-400/5' : 'text-emerald-400 hover:bg-emerald-400/5'}`}
+                            title={u.is_active ? 'Deactivate' : 'Activate'}>
+                            {u.is_active ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'activity' && (
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">Audit Logs</h3>
-                <button className="btn-primary">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Logs
-                </button>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 text-gray-400">Action</th>
-                      <th className="text-left py-3 px-4 text-gray-400">User</th>
-                      <th className="text-left py-3 px-4 text-gray-400">IP Address</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Status</th>
-                      <th className="text-left py-3 px-4 text-gray-400">Timestamp</th>
+                          <button className="p-1 rounded text-primary-400 hover:bg-primary-400/5 transition-colors" title="View">
+                            <Eye className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-gray-800 hover:bg-gray-900/30">
-                        <td className="py-3 px-4">
-                          <p className="text-white font-medium">{log.action}</p>
-                          <p className="text-gray-400 text-sm">{log.resource_type}</p>
-                        </td>
-                        <td className="py-3 px-4 text-white">
-                          {log.user_email || 'System'}
-                        </td>
-                        <td className="py-3 px-4 text-gray-400">
-                          {log.ip_address}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`
-                            px-2 py-1 rounded-full text-xs
-                            ${log.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}
-                          `}>
-                            {log.success ? 'Success' : 'Failed'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+          </div>
+        )}
+
+        {activeTab === 'scans' && (
+          <div className="desktop-panel">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-desktop-border">
+              <h3 className="text-xs font-semibold text-text-secondary">Scan Management</h3>
+              <button className="btn-ghost text-xs px-2.5 py-1 inline-flex items-center gap-1">
+                <Download className="h-3 w-3" /> Export
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-desktop-border">
+                    {['Directory', 'User', 'Status', 'Findings', 'Created', ''].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-text-disabled uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredScans.map((s) => (
+                    <tr key={s.id} className="border-b border-desktop-border hover:bg-white/[0.02] transition-colors">
+                      <td className="py-2 px-3">
+                        <p className="text-xs text-text-primary">{s.directory_path}</p>
+                        <p className="text-[10px] text-text-disabled">ID: {s.scan_id}</p>
+                      </td>
+                      <td className="py-2 px-3 text-xs text-text-primary">{s.user_email}</td>
+                      <td className="py-2 px-3">{statusBadge(s.status)}</td>
+                      <td className="py-2 px-3 text-xs">
+                        <span className="text-red-400">{s.critical_findings}</span> / <span className="text-yellow-400">{s.high_findings}</span> / <span className="text-blue-400">{s.medium_findings}</span> / <span className="text-emerald-400">{s.low_findings}</span>
+                      </td>
+                      <td className="py-2 px-3 text-[10px] text-text-disabled">{new Date(s.created_at).toLocaleDateString()}</td>
+                      <td className="py-2 px-3">
+                        <button className="p-1 rounded text-primary-400 hover:bg-primary-400/5 transition-colors"><Eye className="h-3 w-3" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <div className="desktop-panel">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-desktop-border">
+              <h3 className="text-xs font-semibold text-text-secondary">Audit Logs</h3>
+              <button className="btn-ghost text-xs px-2.5 py-1 inline-flex items-center gap-1">
+                <Download className="h-3 w-3" /> Export
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-desktop-border">
+                    {['Action', 'User', 'IP', 'Status', 'Time'].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-text-disabled uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.map((l) => (
+                    <tr key={l.id} className="border-b border-desktop-border hover:bg-white/[0.02] transition-colors">
+                      <td className="py-2 px-3">
+                        <p className="text-xs text-text-primary">{l.action}</p>
+                        <p className="text-[10px] text-text-disabled">{l.resource_type}</p>
+                      </td>
+                      <td className="py-2 px-3 text-xs text-text-primary">{l.user_email || 'System'}</td>
+                      <td className="py-2 px-3 text-[10px] text-text-disabled">{l.ip_address}</td>
+                      <td className="py-2 px-3">{statusBadge(l.success, 'bool')}</td>
+                      <td className="py-2 px-3 text-[10px] text-text-disabled">{new Date(l.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Progress } from '../components/ui/progress';
 import ScanResults from '../components/ScanResults';
-import { 
-  Play, 
-  Square, 
-  FolderOpen, 
-  FileText, 
-  Clock, 
+import {
+  Play,
+  Square,
+  FolderOpen,
+  FileText,
+  Clock,
   CheckCircle,
   AlertTriangle,
   Loader2,
@@ -33,9 +27,7 @@ const ScanPage = () => {
     priority: 'normal'
   });
 
-  useEffect(() => {
-    loadScanHistory();
-  }, []);
+  useEffect(() => { loadScanHistory(); }, []);
 
   const loadScanHistory = async () => {
     try {
@@ -44,27 +36,18 @@ const ScanPage = () => {
         const data = await response.json();
         setScanHistory(data.scans || []);
       }
-    } catch (error) {
-      console.error('Failed to load scan history:', error);
-    }
+    } catch (error) { console.error('Failed to load scan history:', error); }
   };
 
   const startScan = async () => {
-    if (!scanPath.trim()) {
-      alert('Please enter a path to scan');
-      return;
-    }
-
+    if (!scanPath.trim()) { alert('Please enter a path to scan'); return; }
     setIsScanning(true);
     setScanProgress(0);
     setScanResults(null);
-
     try {
       const response = await fetch('/api/scan/directory', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           directory_path: scanPath,
           recursive: scanOptions.recursive,
@@ -73,15 +56,9 @@ const ScanPage = () => {
           priority: scanOptions.priority
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to start scan');
-      }
-
+      if (!response.ok) throw new Error('Failed to start scan');
       const data = await response.json();
       setCurrentScan(data);
-
-      // Poll for scan progress
       pollScanProgress(data.scan_id);
     } catch (error) {
       console.error('Scan failed:', error);
@@ -96,8 +73,6 @@ const ScanPage = () => {
         const response = await fetch(`/api/scan/results/${scanId}`);
         if (response.ok) {
           const data = await response.json();
-          
-          // Update progress based on status
           if (data.status === 'running') {
             setScanProgress(prev => Math.min(prev + 10, 90));
           } else if (data.status === 'completed') {
@@ -105,61 +80,35 @@ const ScanPage = () => {
             setScanResults(data);
             setIsScanning(false);
             clearInterval(pollInterval);
-            loadScanHistory(); // Refresh history
+            loadScanHistory();
           } else if (data.status === 'failed') {
             setIsScanning(false);
             clearInterval(pollInterval);
             alert('Scan failed: ' + (data.error || 'Unknown error'));
           }
         }
-      } catch (error) {
-        console.error('Failed to poll scan progress:', error);
-      }
+      } catch (error) { console.error('Failed to poll scan progress:', error); }
     }, 2000);
-
-    // Cleanup after 5 minutes
     setTimeout(() => {
       clearInterval(pollInterval);
-      if (isScanning) {
-        setIsScanning(false);
-        alert('Scan timeout - please check scan status manually');
-      }
+      if (isScanning) { setIsScanning(false); alert('Scan timeout'); }
     }, 300000);
   };
 
   const stopScan = async () => {
     if (currentScan) {
       try {
-        await fetch(`/api/scan/stop/${currentScan.scan_id}`, {
-          method: 'POST'
-        });
+        await fetch(`/api/scan/stop/${currentScan.scan_id}`, { method: 'POST' });
         setIsScanning(false);
         setScanProgress(0);
         setCurrentScan(null);
-      } catch (error) {
-        console.error('Failed to stop scan:', error);
-      }
+      } catch (error) { console.error('Failed to stop scan:', error); }
     }
   };
 
   const selectDirectory = () => {
-    // In a real app, this would open a directory picker
-    // For now, we'll use some common paths
-    const commonPaths = [
-      '/src',
-      '/app',
-      '/components',
-      '/pages',
-      '/utils',
-      '/api',
-      '/lib',
-      '/config'
-    ];
-    
-    const path = prompt('Enter directory path:', commonPaths[0]);
-    if (path) {
-      setScanPath(path);
-    }
+    const path = prompt('Enter directory path:', '/src');
+    if (path) setScanPath(path);
   };
 
   const loadPreviousScan = async (scanId) => {
@@ -170,201 +119,162 @@ const ScanPage = () => {
         setScanResults(data);
         setScanPath(data.directory_path || '');
       }
-    } catch (error) {
-      console.error('Failed to load previous scan:', error);
-    }
+    } catch (error) { console.error('Failed to load previous scan:', error); }
   };
 
-  const getScanStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'running': return 'text-yellow-600';
-      case 'failed': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
+  const getStatusColor = (status) => ({
+    completed: 'text-emerald-400', running: 'text-yellow-400', failed: 'text-red-400'
+  }[status] || 'text-text-disabled');
 
-  const getScanStatusIcon = (status) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'running': return <Loader2 className="h-4 w-4 animate-spin" />;
-      case 'failed': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
+  const getStatusIcon = (status) => ({
+    completed: <CheckCircle className="h-3.5 w-3.5" />,
+    running: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    failed: <AlertTriangle className="h-3.5 w-3.5" />
+  }[status] || <Clock className="h-3.5 w-3.5" />);
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-5 overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Security Scan</h1>
-          <p className="text-gray-600 mt-1">
-            Scan your codebase for security vulnerabilities
-          </p>
-        </div>
+      <div>
+        <h1 className="text-lg font-semibold text-text-primary">Security Scan</h1>
+        <p className="text-xs text-text-muted mt-0.5">Scan your codebase for vulnerabilities</p>
       </div>
 
       {/* Scan Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
-            Scan Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Path Input */}
-          <div className="flex space-x-2">
-            <div className="flex-1">
-              <Input
-                placeholder="Enter directory path to scan (e.g., /src, /app)"
-                value={scanPath}
-                onChange={(e) => setScanPath(e.target.value)}
+      <div className="desktop-panel p-4 space-y-3">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+          <Settings className="h-3.5 w-3.5 text-primary-400" />
+          Configuration
+        </h3>
+
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Enter directory path to scan (e.g., /src, /app)"
+              value={scanPath}
+              onChange={(e) => setScanPath(e.target.value)}
+              disabled={isScanning}
+              className="input text-xs py-1.5"
+            />
+          </div>
+          <button
+            onClick={selectDirectory}
+            disabled={isScanning}
+            className="btn-ghost text-xs px-3 py-1.5 inline-flex items-center gap-1"
+          >
+            <FolderOpen className="h-3.5 w-3.5" /> Browse
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {[
+            { key: 'recursive', label: 'Recursive' },
+            { key: 'useCache', label: 'Cache' },
+            { key: 'useIncremental', label: 'Incremental' }
+          ].map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={scanOptions[key]}
+                onChange={(e) => setScanOptions(prev => ({ ...prev, [key]: e.target.checked }))}
                 disabled={isScanning}
+                className="w-3 h-3 rounded border-desktop-border"
+              />
+              <span className="text-xs text-text-secondary">{label}</span>
+            </label>
+          ))}
+          <select
+            value={scanOptions.priority}
+            onChange={(e) => setScanOptions(prev => ({ ...prev, priority: e.target.value }))}
+            disabled={isScanning}
+            className="input text-xs py-1 w-auto"
+          >
+            <option value="low">Low</option>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!isScanning ? (
+            <button onClick={startScan} className="btn-primary text-xs px-4 py-1.5 inline-flex items-center gap-1.5">
+              <Play className="h-3.5 w-3.5" /> Start Scan
+            </button>
+          ) : (
+            <button onClick={stopScan} className="text-xs px-4 py-1.5 inline-flex items-center gap-1.5 rounded-desktop border border-red-400/20 text-red-400 hover:bg-red-400/5 transition-colors">
+              <Square className="h-3.5 w-3.5" /> Stop
+            </button>
+          )}
+        </div>
+
+        {isScanning && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-text-muted">Scanning...</span>
+              <span className="text-text-primary font-medium">{scanProgress}%</span>
+            </div>
+            <div className="w-full bg-desktop-border rounded-full h-1.5">
+              <div
+                className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${scanProgress}%` }}
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={selectDirectory}
-              disabled={isScanning}
-            >
-              <FolderOpen className="h-4 w-4 mr-2" />
-              Browse
-            </Button>
-          </div>
-
-          {/* Scan Options */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={scanOptions.recursive}
-                onChange={(e) => setScanOptions(prev => ({ ...prev, recursive: e.target.checked }))}
-                disabled={isScanning}
-                className="rounded"
-              />
-              <span className="text-sm">Recursive</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={scanOptions.useCache}
-                onChange={(e) => setScanOptions(prev => ({ ...prev, useCache: e.target.checked }))}
-                disabled={isScanning}
-                className="rounded"
-              />
-              <span className="text-sm">Use Cache</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={scanOptions.useIncremental}
-                onChange={(e) => setScanOptions(prev => ({ ...prev, useIncremental: e.target.checked }))}
-                disabled={isScanning}
-                className="rounded"
-              />
-              <span className="text-sm">Incremental</span>
-            </label>
-            <select
-              value={scanOptions.priority}
-              onChange={(e) => setScanOptions(prev => ({ ...prev, priority: e.target.value }))}
-              disabled={isScanning}
-              className="text-sm border rounded px-2 py-1"
-            >
-              <option value="low">Low Priority</option>
-              <option value="normal">Normal Priority</option>
-              <option value="high">High Priority</option>
-              <option value="critical">Critical Priority</option>
-            </select>
-          </div>
-
-          {/* Scan Controls */}
-          <div className="flex space-x-2">
-            {!isScanning ? (
-              <Button onClick={startScan} className="bg-cyan-600 hover:bg-cyan-700">
-                <Play className="h-4 w-4 mr-2" />
-                Start Scan
-              </Button>
-            ) : (
-              <Button onClick={stopScan} variant="destructive">
-                <Square className="h-4 w-4 mr-2" />
-                Stop Scan
-              </Button>
+            {currentScan && (
+              <p className="text-[11px] text-text-disabled">ID: {currentScan.scan_id}</p>
             )}
           </div>
-
-          {/* Scan Progress */}
-          {isScanning && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>Scanning in progress...</span>
-                <span>{scanProgress}%</span>
-              </div>
-              <Progress value={scanProgress} className="w-full" />
-              {currentScan && (
-                <p className="text-sm text-gray-600">
-                  Scan ID: {currentScan.scan_id}
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {/* Scan Results */}
-      {scanResults && (
-        <ScanResults data={scanResults} />
-      )}
+      {scanResults && <ScanResults results={scanResults} />}
 
       {/* Scan History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <History className="h-5 w-5 mr-2" />
-            Recent Scans
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {scanHistory.length > 0 ? (
-            <div className="space-y-3">
-              {scanHistory.map((scan) => (
-                <div
-                  key={scan.scan_id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                  onClick={() => loadPreviousScan(scan.scan_id)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={getScanStatusColor(scan.status)}>
-                      {getScanStatusIcon(scan.status)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{scan.directory_path || 'Unknown path'}</p>
-                      <p className="text-xs text-gray-600">
-                        {new Date(scan.started_at).toLocaleString()}
-                      </p>
-                    </div>
+      <div className="desktop-panel">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-desktop-border">
+          <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+            <History className="h-3.5 w-3.5 text-primary-400" /> Recent Scans
+          </h3>
+        </div>
+
+        {scanHistory.length > 0 ? (
+          <div className="divide-y divide-desktop-border">
+            {scanHistory.map((scan) => (
+              <div
+                key={scan.scan_id}
+                className="flex items-center justify-between px-4 py-2 hover:bg-white/[0.02] cursor-pointer transition-colors"
+                onClick={() => loadPreviousScan(scan.scan_id)}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={getStatusColor(scan.status)}>
+                    {getStatusIcon(scan.status)}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={scan.total_findings > 0 ? "destructive" : "secondary"}>
-                      {scan.total_findings || 0} issues
-                    </Badge>
-                    <Badge variant="outline" className={getScanStatusColor(scan.status)}>
-                      {scan.status}
-                    </Badge>
+                  <div>
+                    <p className="text-xs font-medium text-text-primary">{scan.directory_path || 'Unknown path'}</p>
+                    <p className="text-[11px] text-text-disabled">{new Date(scan.started_at).toLocaleString()}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No previous scans found</p>
-              <p className="text-sm">Start your first scan to see results here</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded-desktop border ${scan.total_findings > 0 ? 'border-red-400/20 text-red-400 bg-red-400/5' : 'border-desktop-border text-text-disabled'
+                    }`}>
+                    {scan.total_findings || 0} issues
+                  </span>
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded-desktop border border-desktop-border ${getStatusColor(scan.status)}`}>
+                    {scan.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <FileText className="h-6 w-6 text-text-disabled mx-auto mb-2" />
+            <p className="text-xs text-text-muted">No previous scans</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

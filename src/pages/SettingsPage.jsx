@@ -1,552 +1,194 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { 
-  Settings, 
-  Shield, 
-  Bell, 
-  Database,
-  Users,
-  Key,
-  Globe,
-  Zap,
-  Save,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Info
+import {
+  Settings, Shield, Bell, Database, Users, Key, Globe, Zap,
+  Save, RefreshCw, AlertTriangle, CheckCircle, Info
 } from 'lucide-react';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
-    // General Settings
-    apiUrl: 'http://localhost:5000',
-    maxConcurrentScans: 5,
-    defaultScanTimeout: 300,
-    enableAutoScan: false,
-    
-    // Security Settings
-    enableRateLimit: true,
-    rateLimitPerMinute: 60,
-    enableAuditLog: true,
-    sessionTimeout: 3600,
-    
-    // Notification Settings
-    enableEmailNotifications: false,
-    emailAddress: '',
-    notifyOnCritical: true,
-    notifyOnScanComplete: false,
-    
-    // Performance Settings
-    enableWorkerPool: true,
-    workerPoolSize: 8,
-    enableIncrementalScan: true,
-    enableCache: true,
-    cacheTimeout: 3600,
-    
-    // Enterprise Features
-    enableSSO: false,
-    enableAnalytics: true,
-    enableCICDIntegrations: true,
-    enableAPIDocumentation: true
+    apiUrl: 'http://localhost:5000', maxConcurrentScans: 5, defaultScanTimeout: 300, enableAutoScan: false,
+    enableRateLimit: true, rateLimitPerMinute: 60, enableAuditLog: true, sessionTimeout: 3600,
+    enableEmailNotifications: false, emailAddress: '', notifyOnCritical: true, notifyOnScanComplete: false,
+    enableWorkerPool: true, workerPoolSize: 8, enableIncrementalScan: true, enableCache: true, cacheTimeout: 3600,
+    enableSSO: false, enableAnalytics: true, enableCICDIntegrations: true, enableAPIDocumentation: true
   });
-
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [systemInfo, setSystemInfo] = useState(null);
 
-  useEffect(() => {
-    loadSettings();
-    loadSystemInfo();
-  }, []);
+  useEffect(() => { loadSettings(); loadSystemInfo(); }, []);
 
   const loadSettings = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(prev => ({ ...prev, ...data }));
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
+    try { const r = await fetch('/api/settings'); if (r.ok) { const d = await r.json(); setSettings(p => ({ ...p, ...d })); } }
+    catch (e) { console.error('Failed to load settings:', e); }
   };
 
   const loadSystemInfo = async () => {
-    try {
-      const response = await fetch('/api/health/complete');
-      if (response.ok) {
-        const data = await response.json();
-        setSystemInfo(data);
-      }
-    } catch (error) {
-      console.error('Failed to load system info:', error);
-    }
+    try { const r = await fetch('/api/health/complete'); if (r.ok) setSystemInfo(await r.json()); }
+    catch (e) { console.error('Failed to load system info:', e); }
   };
 
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      });
-
-      if (response.ok) {
-        setLastSaved(new Date());
-        alert('Settings saved successfully!');
-      } else {
-        throw new Error('Failed to save settings');
-      }
-    } catch (error) {
-      console.error('Save failed:', error);
-      alert('Failed to save settings: ' + error.message);
-    } finally {
-      setSaving(false);
-    }
+      const r = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
+      if (r.ok) { setLastSaved(new Date()); alert('Settings saved!'); } else throw new Error('Save failed');
+    } catch (e) { alert('Failed: ' + e.message); }
+    finally { setSaving(false); }
   };
 
   const resetToDefaults = () => {
-    if (confirm('Are you sure you want to reset all settings to defaults?')) {
+    if (confirm('Reset all settings to defaults?')) {
       setSettings({
-        apiUrl: 'http://localhost:5000',
-        maxConcurrentScans: 5,
-        defaultScanTimeout: 300,
-        enableAutoScan: false,
-        enableRateLimit: true,
-        rateLimitPerMinute: 60,
-        enableAuditLog: true,
-        sessionTimeout: 3600,
-        enableEmailNotifications: false,
-        emailAddress: '',
-        notifyOnCritical: true,
-        notifyOnScanComplete: false,
-        enableWorkerPool: true,
-        workerPoolSize: 8,
-        enableIncrementalScan: true,
-        enableCache: true,
-        cacheTimeout: 3600,
-        enableSSO: false,
-        enableAnalytics: true,
-        enableCICDIntegrations: true,
-        enableAPIDocumentation: true
+        apiUrl: 'http://localhost:5000', maxConcurrentScans: 5, defaultScanTimeout: 300, enableAutoScan: false,
+        enableRateLimit: true, rateLimitPerMinute: 60, enableAuditLog: true, sessionTimeout: 3600,
+        enableEmailNotifications: false, emailAddress: '', notifyOnCritical: true, notifyOnScanComplete: false,
+        enableWorkerPool: true, workerPoolSize: 8, enableIncrementalScan: true, enableCache: true, cacheTimeout: 3600,
+        enableSSO: false, enableAnalytics: true, enableCICDIntegrations: true, enableAPIDocumentation: true
       });
     }
   };
 
-  const updateSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
+  const u = (key, value) => setSettings(p => ({ ...p, [key]: value }));
+
+  const Toggle = ({ id, label, checked, onChange, badge }) => (
+    <div className="flex items-center justify-between">
+      <label htmlFor={id} className="flex items-center gap-1.5 cursor-pointer">
+        <input type="checkbox" id={id} checked={checked} onChange={onChange} className="w-3 h-3 rounded border-desktop-border" />
+        <span className="text-xs text-text-secondary">{label}</span>
+      </label>
+      {badge && <span className="text-[10px] text-text-disabled px-1.5 py-0.5 border border-desktop-border rounded-desktop">{badge}</span>}
+    </div>
+  );
+
+  const Field = ({ label, children }) => (
+    <div>
+      <label className="block text-[11px] text-text-muted mb-1">{label}</label>
+      {children}
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-4 overflow-y-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">
-            Configure ByteGuardX system settings and preferences
-          </p>
+          <h1 className="text-lg font-semibold text-text-primary">System Settings</h1>
+          <p className="text-xs text-text-muted mt-0.5">Configure ByteGuardX preferences</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={resetToDefaults}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset to Defaults
-          </Button>
-          <Button onClick={saveSettings} disabled={saving} className="bg-cyan-600 hover:bg-cyan-700">
-            {saving ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Settings
-              </>
-            )}
-          </Button>
+        <div className="flex gap-1.5">
+          <button onClick={resetToDefaults} className="btn-ghost text-xs px-2.5 py-1.5 inline-flex items-center gap-1">
+            <RefreshCw className="h-3 w-3" /> Reset
+          </button>
+          <button onClick={saveSettings} disabled={saving} className="btn-primary text-xs px-3 py-1.5 inline-flex items-center gap-1 disabled:opacity-50">
+            {saving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            {saving ? 'Saving...' : 'Save'}
+          </button>
         </div>
       </div>
 
-      {/* Last Saved Info */}
       {lastSaved && (
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription className="text-green-800">
-            Settings saved successfully at {lastSaved.toLocaleTimeString()}
-          </AlertDescription>
-        </Alert>
+        <div className="p-2 bg-emerald-400/5 border border-emerald-400/10 rounded-desktop flex items-center gap-1.5">
+          <CheckCircle className="h-3 w-3 text-emerald-400" />
+          <span className="text-[11px] text-emerald-400">Saved at {lastSaved.toLocaleTimeString()}</span>
+        </div>
       )}
 
-      {/* General Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
-            General Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                API URL
-              </label>
-              <Input
-                value={settings.apiUrl}
-                onChange={(e) => updateSetting('apiUrl', e.target.value)}
-                placeholder="http://localhost:5000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Max Concurrent Scans
-              </label>
-              <Input
-                type="number"
-                value={settings.maxConcurrentScans}
-                onChange={(e) => updateSetting('maxConcurrentScans', parseInt(e.target.value))}
-                min="1"
-                max="20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Default Scan Timeout (seconds)
-              </label>
-              <Input
-                type="number"
-                value={settings.defaultScanTimeout}
-                onChange={(e) => updateSetting('defaultScanTimeout', parseInt(e.target.value))}
-                min="60"
-                max="3600"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableAutoScan"
-                checked={settings.enableAutoScan}
-                onChange={(e) => updateSetting('enableAutoScan', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableAutoScan" className="text-sm font-medium text-gray-700">
-                Enable Auto-scan on File Changes
-              </label>
-            </div>
+      {/* General */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <Settings className="h-3.5 w-3.5 text-primary-400" /> General
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="API URL">
+            <input type="text" value={settings.apiUrl} onChange={(e) => u('apiUrl', e.target.value)} className="input text-xs py-1" />
+          </Field>
+          <Field label="Max Concurrent Scans">
+            <input type="number" value={settings.maxConcurrentScans} onChange={(e) => u('maxConcurrentScans', parseInt(e.target.value))} min="1" max="20" className="input text-xs py-1" />
+          </Field>
+          <Field label="Scan Timeout (s)">
+            <input type="number" value={settings.defaultScanTimeout} onChange={(e) => u('defaultScanTimeout', parseInt(e.target.value))} min="60" max="3600" className="input text-xs py-1" />
+          </Field>
+          <div className="flex items-end">
+            <Toggle id="enableAutoScan" label="Auto-scan on changes" checked={settings.enableAutoScan} onChange={(e) => u('enableAutoScan', e.target.checked)} />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Security Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="h-5 w-5 mr-2" />
-            Security Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableRateLimit"
-                checked={settings.enableRateLimit}
-                onChange={(e) => updateSetting('enableRateLimit', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableRateLimit" className="text-sm font-medium text-gray-700">
-                Enable Rate Limiting
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rate Limit (requests/minute)
-              </label>
-              <Input
-                type="number"
-                value={settings.rateLimitPerMinute}
-                onChange={(e) => updateSetting('rateLimitPerMinute', parseInt(e.target.value))}
-                min="10"
-                max="1000"
-                disabled={!settings.enableRateLimit}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableAuditLog"
-                checked={settings.enableAuditLog}
-                onChange={(e) => updateSetting('enableAuditLog', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableAuditLog" className="text-sm font-medium text-gray-700">
-                Enable Audit Logging
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Session Timeout (seconds)
-              </label>
-              <Input
-                type="number"
-                value={settings.sessionTimeout}
-                onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
-                min="300"
-                max="86400"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Security */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <Shield className="h-3.5 w-3.5 text-primary-400" /> Security
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Toggle id="enableRateLimit" label="Rate Limiting" checked={settings.enableRateLimit} onChange={(e) => u('enableRateLimit', e.target.checked)} />
+          <Field label="Rate Limit (req/min)">
+            <input type="number" value={settings.rateLimitPerMinute} onChange={(e) => u('rateLimitPerMinute', parseInt(e.target.value))} min="10" max="1000" disabled={!settings.enableRateLimit} className="input text-xs py-1" />
+          </Field>
+          <Toggle id="enableAuditLog" label="Audit Logging" checked={settings.enableAuditLog} onChange={(e) => u('enableAuditLog', e.target.checked)} />
+          <Field label="Session Timeout (s)">
+            <input type="number" value={settings.sessionTimeout} onChange={(e) => u('sessionTimeout', parseInt(e.target.value))} min="300" max="86400" className="input text-xs py-1" />
+          </Field>
+        </div>
+      </div>
 
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2" />
-            Notification Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableEmailNotifications"
-                checked={settings.enableEmailNotifications}
-                onChange={(e) => updateSetting('enableEmailNotifications', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableEmailNotifications" className="text-sm font-medium text-gray-700">
-                Enable Email Notifications
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                value={settings.emailAddress}
-                onChange={(e) => updateSetting('emailAddress', e.target.value)}
-                placeholder="admin@company.com"
-                disabled={!settings.enableEmailNotifications}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="notifyOnCritical"
-                checked={settings.notifyOnCritical}
-                onChange={(e) => updateSetting('notifyOnCritical', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="notifyOnCritical" className="text-sm font-medium text-gray-700">
-                Notify on Critical Findings
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="notifyOnScanComplete"
-                checked={settings.notifyOnScanComplete}
-                onChange={(e) => updateSetting('notifyOnScanComplete', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="notifyOnScanComplete" className="text-sm font-medium text-gray-700">
-                Notify on Scan Completion
-              </label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Notifications */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <Bell className="h-3.5 w-3.5 text-primary-400" /> Notifications
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Toggle id="enableEmailNotifications" label="Email Notifications" checked={settings.enableEmailNotifications} onChange={(e) => u('enableEmailNotifications', e.target.checked)} />
+          <Field label="Email Address">
+            <input type="email" value={settings.emailAddress} onChange={(e) => u('emailAddress', e.target.value)} placeholder="admin@company.com" disabled={!settings.enableEmailNotifications} className="input text-xs py-1" />
+          </Field>
+          <Toggle id="notifyOnCritical" label="On Critical Findings" checked={settings.notifyOnCritical} onChange={(e) => u('notifyOnCritical', e.target.checked)} />
+          <Toggle id="notifyOnScanComplete" label="On Scan Complete" checked={settings.notifyOnScanComplete} onChange={(e) => u('notifyOnScanComplete', e.target.checked)} />
+        </div>
+      </div>
 
-      {/* Performance Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Zap className="h-5 w-5 mr-2" />
-            Performance Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableWorkerPool"
-                checked={settings.enableWorkerPool}
-                onChange={(e) => updateSetting('enableWorkerPool', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableWorkerPool" className="text-sm font-medium text-gray-700">
-                Enable Worker Pool
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Worker Pool Size
-              </label>
-              <Input
-                type="number"
-                value={settings.workerPoolSize}
-                onChange={(e) => updateSetting('workerPoolSize', parseInt(e.target.value))}
-                min="1"
-                max="32"
-                disabled={!settings.enableWorkerPool}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableIncrementalScan"
-                checked={settings.enableIncrementalScan}
-                onChange={(e) => updateSetting('enableIncrementalScan', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableIncrementalScan" className="text-sm font-medium text-gray-700">
-                Enable Incremental Scanning
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableCache"
-                checked={settings.enableCache}
-                onChange={(e) => updateSetting('enableCache', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableCache" className="text-sm font-medium text-gray-700">
-                Enable Caching
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cache Timeout (seconds)
-              </label>
-              <Input
-                type="number"
-                value={settings.cacheTimeout}
-                onChange={(e) => updateSetting('cacheTimeout', parseInt(e.target.value))}
-                min="300"
-                max="86400"
-                disabled={!settings.enableCache}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Performance */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <Zap className="h-3.5 w-3.5 text-primary-400" /> Performance
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Toggle id="enableWorkerPool" label="Worker Pool" checked={settings.enableWorkerPool} onChange={(e) => u('enableWorkerPool', e.target.checked)} />
+          <Field label="Worker Pool Size">
+            <input type="number" value={settings.workerPoolSize} onChange={(e) => u('workerPoolSize', parseInt(e.target.value))} min="1" max="32" disabled={!settings.enableWorkerPool} className="input text-xs py-1" />
+          </Field>
+          <Toggle id="enableIncrementalScan" label="Incremental Scan" checked={settings.enableIncrementalScan} onChange={(e) => u('enableIncrementalScan', e.target.checked)} />
+          <Toggle id="enableCache" label="Caching" checked={settings.enableCache} onChange={(e) => u('enableCache', e.target.checked)} />
+          <Field label="Cache Timeout (s)">
+            <input type="number" value={settings.cacheTimeout} onChange={(e) => u('cacheTimeout', parseInt(e.target.value))} min="300" max="86400" disabled={!settings.enableCache} className="input text-xs py-1" />
+          </Field>
+        </div>
+      </div>
 
-      {/* Enterprise Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Globe className="h-5 w-5 mr-2" />
-            Enterprise Features
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="enableSSO"
-                  checked={settings.enableSSO}
-                  onChange={(e) => updateSetting('enableSSO', e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="enableSSO" className="text-sm font-medium text-gray-700">
-                  Enable SSO Integration
-                </label>
-              </div>
-              <Badge variant="outline">Enterprise</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="enableAnalytics"
-                  checked={settings.enableAnalytics}
-                  onChange={(e) => updateSetting('enableAnalytics', e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="enableAnalytics" className="text-sm font-medium text-gray-700">
-                  Enable Advanced Analytics
-                </label>
-              </div>
-              <Badge variant="outline">Pro</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="enableCICDIntegrations"
-                  checked={settings.enableCICDIntegrations}
-                  onChange={(e) => updateSetting('enableCICDIntegrations', e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="enableCICDIntegrations" className="text-sm font-medium text-gray-700">
-                  Enable CI/CD Integrations
-                </label>
-              </div>
-              <Badge variant="outline">Pro</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enableAPIDocumentation"
-                checked={settings.enableAPIDocumentation}
-                onChange={(e) => updateSetting('enableAPIDocumentation', e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="enableAPIDocumentation" className="text-sm font-medium text-gray-700">
-                Enable API Documentation
-              </label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Enterprise */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <Globe className="h-3.5 w-3.5 text-primary-400" /> Enterprise
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Toggle id="enableSSO" label="SSO Integration" checked={settings.enableSSO} onChange={(e) => u('enableSSO', e.target.checked)} badge="Enterprise" />
+          <Toggle id="enableAnalytics" label="Advanced Analytics" checked={settings.enableAnalytics} onChange={(e) => u('enableAnalytics', e.target.checked)} badge="Pro" />
+          <Toggle id="enableCICDIntegrations" label="CI/CD Integrations" checked={settings.enableCICDIntegrations} onChange={(e) => u('enableCICDIntegrations', e.target.checked)} badge="Pro" />
+          <Toggle id="enableAPIDocumentation" label="API Documentation" checked={settings.enableAPIDocumentation} onChange={(e) => u('enableAPIDocumentation', e.target.checked)} />
+        </div>
+      </div>
 
-      {/* System Information */}
+      {/* System Info */}
       {systemInfo && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Database className="h-5 w-5 mr-2" />
-              System Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-medium text-gray-700">System Status</p>
-                <p className={`${systemInfo.overall_status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
-                  {systemInfo.overall_status}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700">Uptime</p>
-                <p className="text-gray-600">
-                  {Math.floor(systemInfo.uptime_seconds / 3600)}h {Math.floor((systemInfo.uptime_seconds % 3600) / 60)}m
-                </p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700">Version</p>
-                <p className="text-gray-600">ByteGuardX v3.0.0</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="desktop-panel p-4">
+          <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+            <Database className="h-3.5 w-3.5 text-primary-400" /> System
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div><p className="text-[11px] text-text-muted">Status</p><p className={`text-xs font-medium ${systemInfo.overall_status === 'healthy' ? 'text-emerald-400' : 'text-red-400'}`}>{systemInfo.overall_status}</p></div>
+            <div><p className="text-[11px] text-text-muted">Uptime</p><p className="text-xs text-text-primary">{Math.floor(systemInfo.uptime_seconds / 3600)}h {Math.floor((systemInfo.uptime_seconds % 3600) / 60)}m</p></div>
+            <div><p className="text-[11px] text-text-muted">Version</p><p className="text-xs text-text-primary">v3.0.0</p></div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,299 +1,135 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import {
-  Mail,
-  Bell,
-  Shield,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  Save,
-  RefreshCw
+  Mail, Bell, Shield, Calendar, AlertTriangle, CheckCircle, Save, RefreshCw
 } from 'lucide-react'
 
 const EmailPreferences = () => {
   const [preferences, setPreferences] = useState({
-    scan_completed: true,
-    vulnerabilities_found: true,
-    login_alerts: true,
-    scheduled_scan_failed: true,
-    weekly_summary: false
+    scan_completed: true, vulnerabilities_found: true, login_alerts: true,
+    scheduled_scan_failed: true, weekly_summary: false
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    fetchPreferences()
-  }, [])
+  useEffect(() => { fetchPreferences() }, [])
 
   const fetchPreferences = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/user/profile', {
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.user && data.user.email_notifications) {
-          setPreferences(data.user.email_notifications)
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching email preferences:', error)
-    } finally {
-      setLoading(false)
-    }
+      const r = await fetch('/api/user/profile', { credentials: 'include' })
+      if (r.ok) { const d = await r.json(); if (d.user?.email_notifications) setPreferences(d.user.email_notifications) }
+    } catch (e) { console.error('Error fetching email preferences:', e) }
+    finally { setLoading(false) }
   }
 
   const updatePreferences = async () => {
     try {
-      setSaving(true)
-      setMessage('')
-      
-      const response = await fetch('/api/user/email-preferences', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email_notifications: preferences })
+      setSaving(true); setMessage('')
+      const r = await fetch('/api/user/email-preferences', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ email_notifications: preferences })
       })
-
-      if (response.ok) {
-        setMessage('Email preferences updated successfully')
-        setTimeout(() => setMessage(''), 3000)
-      } else {
-        throw new Error('Failed to update preferences')
-      }
-    } catch (error) {
-      setMessage('Failed to update email preferences')
-      setTimeout(() => setMessage(''), 3000)
-    } finally {
-      setSaving(false)
-    }
+      setMessage(r.ok ? 'Email preferences updated successfully' : 'Failed to update preferences')
+    } catch (e) { setMessage('Failed to update email preferences') }
+    finally { setSaving(false); setTimeout(() => setMessage(''), 3000) }
   }
 
-  const handleToggle = (key) => {
-    setPreferences(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
-  }
+  const handleToggle = (key) => setPreferences(p => ({ ...p, [key]: !p[key] }))
 
   const notificationTypes = [
-    {
-      key: 'scan_completed',
-      title: 'Scan Completed',
-      description: 'Receive notifications when security scans finish',
-      icon: Shield,
-      color: 'text-green-400'
-    },
-    {
-      key: 'vulnerabilities_found',
-      title: 'Vulnerabilities Found',
-      description: 'Get alerts when critical or high-severity vulnerabilities are detected',
-      icon: AlertTriangle,
-      color: 'text-red-400'
-    },
-    {
-      key: 'login_alerts',
-      title: 'Login Alerts',
-      description: 'Security notifications for new login attempts',
-      icon: Bell,
-      color: 'text-blue-400'
-    },
-    {
-      key: 'scheduled_scan_failed',
-      title: 'Scheduled Scan Failures',
-      description: 'Notifications when scheduled scans fail to execute',
-      icon: Calendar,
-      color: 'text-orange-400'
-    },
-    {
-      key: 'weekly_summary',
-      title: 'Weekly Summary',
-      description: 'Weekly digest of your security activity and findings',
-      icon: Mail,
-      color: 'text-purple-400'
-    }
+    { key: 'scan_completed', title: 'Scan Completed', description: 'When scans finish', icon: Shield, color: 'text-emerald-400' },
+    { key: 'vulnerabilities_found', title: 'Vulnerabilities Found', description: 'Critical/high severity alerts', icon: AlertTriangle, color: 'text-red-400' },
+    { key: 'login_alerts', title: 'Login Alerts', description: 'New login attempts', icon: Bell, color: 'text-blue-400' },
+    { key: 'scheduled_scan_failed', title: 'Scan Failures', description: 'Scheduled scan failures', icon: Calendar, color: 'text-amber-400' },
+    { key: 'weekly_summary', title: 'Weekly Summary', description: 'Weekly activity digest', icon: Mail, color: 'text-purple-400' }
   ]
 
   if (loading) {
     return (
-      <div className="glass-card p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <Mail className="h-6 w-6 text-cyan-400" />
-          <h3 className="text-xl font-semibold text-white">Email Notifications</h3>
-        </div>
-        
+      <div>
+        <h3 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-1.5">
+          <Mail className="h-3.5 w-3.5 text-primary-400" /> Email Notifications
+        </h3>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <div className="w-5 h-5 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="glass-card p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <Mail className="h-6 w-6 text-cyan-400" />
-          <h3 className="text-xl font-semibold text-white">Email Notifications</h3>
-        </div>
-        
-        <button
-          onClick={fetchPreferences}
-          className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
-          title="Refresh"
-        >
-          <RefreshCw className="h-4 w-4" />
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
+          <Mail className="h-3.5 w-3.5 text-primary-400" /> Email Notifications
+        </h3>
+        <button onClick={fetchPreferences} className="p-1 text-text-muted hover:text-text-primary rounded transition-colors" title="Refresh">
+          <RefreshCw className="h-3 w-3" />
         </button>
       </div>
 
-      {/* Success/Error Message */}
       {message && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`
-            flex items-center space-x-2 p-3 rounded-lg mb-6
-            ${message.includes('success') 
-              ? 'bg-green-500/20 border border-green-500/30' 
-              : 'bg-red-500/20 border border-red-500/30'
-            }
-          `}
-        >
-          {message.includes('success') ? (
-            <CheckCircle className="h-4 w-4 text-green-400" />
-          ) : (
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-          )}
-          <span className={`text-sm ${message.includes('success') ? 'text-green-400' : 'text-red-400'}`}>
-            {message}
-          </span>
-        </motion.div>
+        <div className={`flex items-center gap-1.5 p-2 rounded-desktop mb-3 text-[11px] ${message.includes('success') ? 'bg-emerald-400/5 border border-emerald-400/10 text-emerald-400' : 'bg-red-400/5 border border-red-400/10 text-red-400'
+          }`}>
+          {message.includes('success') ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+          {message}
+        </div>
       )}
 
-      {/* Notification Settings */}
-      <div className="space-y-4 mb-6">
-        {notificationTypes.map((type) => {
-          const Icon = type.icon
-          const isEnabled = preferences[type.key]
-          
-          return (
-            <motion.div
-              key={type.key}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center justify-between p-4 bg-gray-900/30 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
-            >
-              <div className="flex items-center space-x-4">
-                <div className={`p-2 rounded-lg bg-gray-800 ${type.color}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                
-                <div>
-                  <h4 className="text-white font-medium">{type.title}</h4>
-                  <p className="text-gray-400 text-sm">{type.description}</p>
-                </div>
+      <div className="space-y-1.5 mb-4">
+        {notificationTypes.map(({ key, title, description, icon: Icon, color }) => (
+          <div key={key} className="flex items-center justify-between p-2.5 bg-white/[0.02] rounded-desktop border border-desktop-border hover:border-primary-500/10 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className={`p-1 rounded-desktop bg-white/[0.04] ${color}`}>
+                <Icon className="h-3.5 w-3.5" />
               </div>
-
-              {/* Toggle Switch */}
-              <button
-                onClick={() => handleToggle(type.key)}
-                className={`
-                  relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                  ${isEnabled ? 'bg-cyan-500' : 'bg-gray-600'}
-                `}
-              >
-                <span
-                  className={`
-                    inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                    ${isEnabled ? 'translate-x-6' : 'translate-x-1'}
-                  `}
-                />
-              </button>
-            </motion.div>
-          )
-        })}
+              <div>
+                <p className="text-xs text-text-primary">{title}</p>
+                <p className="text-[10px] text-text-muted">{description}</p>
+              </div>
+            </div>
+            <button onClick={() => handleToggle(key)}
+              className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${preferences[key] ? 'bg-primary-600' : 'bg-desktop-border'}`}>
+              <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${preferences[key] ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        ))}
       </div>
 
-      {/* Email Frequency Info */}
-      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-6">
-        <div className="flex items-start space-x-3">
-          <Bell className="h-5 w-5 text-blue-400 mt-0.5" />
-          <div>
-            <h4 className="text-blue-400 font-medium mb-1">Email Frequency</h4>
-            <p className="text-blue-300 text-sm">
-              Immediate notifications are sent for critical security events. 
-              Non-urgent notifications are batched and sent at most once per hour to avoid spam.
-            </p>
-          </div>
+      <div className="p-2.5 bg-blue-400/5 border border-blue-400/10 rounded-desktop mb-3">
+        <div className="flex items-start gap-2">
+          <Bell className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-[10px] text-blue-300">
+            Critical events sent immediately. Non-urgent batched hourly.
+          </p>
         </div>
       </div>
 
-      {/* Test Email Section */}
-      <div className="p-4 bg-gray-900/30 rounded-lg border border-gray-700 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-white font-medium mb-1">Test Email Notifications</h4>
-            <p className="text-gray-400 text-sm">
-              Send a test email to verify your notification settings are working correctly.
-            </p>
-          </div>
-          
-          <button
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/user/test-email', {
-                  method: 'POST',
-                  credentials: 'include'
-                })
-                
-                if (response.ok) {
-                  setMessage('Test email sent successfully')
-                } else {
-                  setMessage('Failed to send test email')
-                }
-                
-                setTimeout(() => setMessage(''), 3000)
-              } catch (error) {
-                setMessage('Failed to send test email')
-                setTimeout(() => setMessage(''), 3000)
-              }
-            }}
-            className="btn-secondary text-sm"
-          >
-            Send Test Email
-          </button>
+      <div className="flex items-center justify-between p-2.5 bg-white/[0.02] rounded-desktop border border-desktop-border mb-3">
+        <div>
+          <p className="text-xs text-text-primary">Test Notifications</p>
+          <p className="text-[10px] text-text-muted">Send a test email to verify</p>
         </div>
+        <button onClick={async () => {
+          try {
+            const r = await fetch('/api/user/test-email', { method: 'POST', credentials: 'include' })
+            setMessage(r.ok ? 'Test email sent successfully' : 'Failed to send test email')
+          } catch (e) { setMessage('Failed to send test email') }
+          setTimeout(() => setMessage(''), 3000)
+        }} className="btn-ghost text-xs px-2.5 py-1">Send Test</button>
       </div>
 
-      {/* Save Button */}
-      <div className="flex items-center justify-end space-x-3">
-        <button
-          onClick={updatePreferences}
-          disabled={saving}
-          className="btn-primary flex items-center space-x-2"
-        >
-          {saving ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          <span>{saving ? 'Saving...' : 'Save Preferences'}</span>
+      <div className="flex justify-end mb-3">
+        <button onClick={updatePreferences} disabled={saving} className="btn-primary text-xs px-3 py-1.5 inline-flex items-center gap-1 disabled:opacity-50">
+          {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-3 w-3" />}
+          {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
 
-      {/* Privacy Notice */}
-      <div className="mt-6 p-3 bg-gray-900/20 rounded-lg border border-gray-800">
-        <p className="text-gray-400 text-xs">
-          <strong>Privacy Notice:</strong> Your email address is only used for security notifications 
-          and account-related communications. We never share your email with third parties or send 
-          marketing emails. You can disable notifications at any time.
+      <div className="p-2 bg-white/[0.01] rounded-desktop border border-desktop-border">
+        <p className="text-[10px] text-text-disabled">
+          <strong>Privacy:</strong> Email used only for security notifications. Never shared. Disable anytime.
         </p>
       </div>
     </div>

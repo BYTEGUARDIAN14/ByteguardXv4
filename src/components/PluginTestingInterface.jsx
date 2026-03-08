@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
-  Play,
-  Code,
-  FileText,
-  TestTube,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Zap,
-  Settings,
-  Download,
-  Copy,
-  Eye,
-  BarChart3
+  Play, Code, FileText, TestTube, CheckCircle, AlertTriangle,
+  Clock, Zap, Settings, Download, Copy, Eye, BarChart3
 } from 'lucide-react';
 import tauriAPI from '../services/tauri-api';
 
@@ -27,355 +15,206 @@ const PluginTestingInterface = ({ pluginData }) => {
   const testCases = {
     'aws_s3_exposure_scanner': {
       name: 'AWS S3 Exposure Scanner',
-      content: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::my-bucket/*"
-    }
-  ]
-}`,
+      content: `{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Effect": "Allow",\n    "Principal": "*",\n    "Action": "s3:GetObject",\n    "Resource": "arn:aws:s3:::my-bucket/*"\n  }]\n}`,
       fileName: 'bucket-policy.json'
     },
     'ssrf_detector': {
       name: 'SSRF Detector',
-      content: `import requests
-
-def fetch_url():
-    url = request.args.get('url')
-    response = requests.get(url)  # Vulnerable to SSRF
-    return response.text`,
+      content: `import requests\n\ndef fetch_url():\n    url = request.args.get('url')\n    response = requests.get(url)  # Vulnerable\n    return response.text`,
       fileName: 'app.py'
     },
     'jwt_security_validator': {
       name: 'JWT Security Validator',
-      content: `JWT_SECRET = "weak123"
-token = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
+      content: `JWT_SECRET = "weak123"\ntoken = jwt.encode(payload, JWT_SECRET, algorithm="none")`,
       fileName: 'auth.py'
     },
     'terraform_security_scanner': {
       name: 'Terraform Security Scanner',
-      content: `resource "aws_s3_bucket" "example" {
-  bucket = "my-bucket"
-  acl    = "public-read"
-  
-  server_side_encryption_configuration = []
-}`,
+      content: `resource "aws_s3_bucket" "example" {\n  bucket = "my-bucket"\n  acl    = "public-read"\n  server_side_encryption_configuration = []\n}`,
       fileName: 'main.tf'
     }
   };
 
   useEffect(() => {
-    if (selectedPlugin && testCases[selectedPlugin]) {
-      setTestContent(testCases[selectedPlugin].content);
-    }
+    if (selectedPlugin && testCases[selectedPlugin]) setTestContent(testCases[selectedPlugin].content);
   }, [selectedPlugin]);
 
   const runPluginTest = async () => {
     if (!selectedPlugin || !testContent) return;
-
-    setIsRunning(true);
-    setTestResults(null);
-
+    setIsRunning(true); setTestResults(null);
     try {
       const testCase = testCases[selectedPlugin];
       const response = await tauriAPI.plugins.execute(selectedPlugin, {
-        content: testContent,
-        file_path: testCase.fileName,
-        context: { test_mode: true }
+        content: testContent, file_path: testCase.fileName, context: { test_mode: true }
       });
-
-      if (response && response.result) {
+      if (response?.result) {
         setTestResults(response.result);
-
-        // Add to history
-        const historyEntry = {
-          id: Date.now(),
-          plugin: selectedPlugin,
-          timestamp: new Date().toISOString(),
-          status: response.result.status,
-          findings: response.result.findings?.length || 0,
+        setTestHistory(prev => [{
+          id: Date.now(), plugin: selectedPlugin, timestamp: new Date().toISOString(),
+          status: response.result.status, findings: response.result.findings?.length || 0,
           executionTime: response.result.execution_time_ms
-        };
-        setTestHistory(prev => [historyEntry, ...prev.slice(0, 9)]);
-      } else {
-        throw new Error('Test execution failed');
-      }
+        }, ...prev.slice(0, 9)]);
+      } else throw new Error('Test execution failed');
     } catch (error) {
       console.error('Plugin test error:', error);
-      setTestResults({
-        status: 'failed',
-        error_message: error.message,
-        findings: []
-      });
-    } finally {
-      setIsRunning(false);
-    }
+      setTestResults({ status: 'failed', error_message: error.message, findings: [] });
+    } finally { setIsRunning(false); }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-  };
+  const copyToClipboard = (text) => navigator.clipboard.writeText(text);
 
-  const renderPluginSelector = () => (
-    <div className="glass-card mb-6">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-        <TestTube className="w-5 h-5 mr-2 text-cyan-400" />
-        Plugin Testing Interface
-      </h3>
+  const getSeverityStyle = (severity) => ({
+    critical: 'text-red-400 border-red-400/15', high: 'text-amber-400 border-amber-400/15',
+    medium: 'text-yellow-400 border-yellow-400/15', low: 'text-blue-400 border-blue-400/15'
+  }[severity] || 'text-text-disabled border-desktop-border');
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Select Plugin to Test
-          </label>
-          <select
-            value={selectedPlugin}
-            onChange={(e) => setSelectedPlugin(e.target.value)}
-            className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-sm font-semibold text-text-primary">Plugin Testing</h2>
+        <p className="text-[11px] text-text-muted">Test plugins with custom content</p>
+      </div>
+
+      {/* Plugin Selector + Run */}
+      <div className="desktop-panel p-4">
+        <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5 mb-3">
+          <TestTube className="h-3.5 w-3.5 text-primary-400" /> Select & Run
+        </h3>
+        <div className="flex gap-2">
+          <select value={selectedPlugin} onChange={(e) => setSelectedPlugin(e.target.value)} className="input text-xs py-1.5 flex-1">
             <option value="">Choose a plugin...</option>
-            {Object.entries(testCases).map(([key, testCase]) => (
-              <option key={key} value={key}>
-                {testCase.name}
-              </option>
-            ))}
+            {Object.entries(testCases).map(([key, tc]) => <option key={key} value={key}>{tc.name}</option>)}
           </select>
-        </div>
-
-        <div className="flex items-end">
-          <motion.button
-            onClick={runPluginTest}
-            disabled={!selectedPlugin || !testContent || isRunning}
-            className={`flex items-center space-x-2 px-6 py-2 rounded-lg font-medium transition-all ${!selectedPlugin || !testContent || isRunning
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
+          <button onClick={runPluginTest} disabled={!selectedPlugin || !testContent || isRunning}
+            className={`text-xs px-4 py-1.5 rounded-desktop inline-flex items-center gap-1.5 transition-colors ${!selectedPlugin || !testContent || isRunning
+                ? 'bg-desktop-card text-text-disabled cursor-not-allowed border border-desktop-border'
+                : 'btn-primary'
               }`}
-            whileHover={!selectedPlugin || !testContent || isRunning ? {} : { scale: 1.02 }}
-            whileTap={!selectedPlugin || !testContent || isRunning ? {} : { scale: 0.98 }}
           >
             {isRunning ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                <span>Testing...</span>
-              </>
+              <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Testing...</>
             ) : (
-              <>
-                <Play className="w-4 h-4" />
-                <span>Run Test</span>
-              </>
+              <><Play className="h-3.5 w-3.5" /> Run Test</>
             )}
-          </motion.button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderTestInput = () => (
-    <div className="glass-card mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-md font-semibold text-white flex items-center">
-          <Code className="w-4 h-4 mr-2 text-cyan-400" />
-          Test Content
-        </h4>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => copyToClipboard(testContent)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-            title="Copy to clipboard"
-          >
-            <Copy className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-400">
-            {selectedPlugin && testCases[selectedPlugin] ? testCases[selectedPlugin].fileName : 'No file selected'}
-          </span>
         </div>
       </div>
 
-      <textarea
-        value={testContent}
-        onChange={(e) => setTestContent(e.target.value)}
-        placeholder="Enter test content or select a plugin to load sample data..."
-        className="w-full h-64 px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500"
-      />
-    </div>
-  );
-
-  const renderTestResults = () => {
-    if (!testResults) return null;
-
-    const getStatusColor = (status) => {
-      switch (status) {
-        case 'completed': return 'text-green-400';
-        case 'failed': return 'text-red-400';
-        default: return 'text-gray-400';
-      }
-    };
-
-    const getSeverityColor = (severity) => {
-      switch (severity) {
-        case 'critical': return 'text-red-400 bg-red-500/20';
-        case 'high': return 'text-orange-400 bg-orange-500/20';
-        case 'medium': return 'text-yellow-400 bg-yellow-500/20';
-        case 'low': return 'text-blue-400 bg-blue-500/20';
-        default: return 'text-gray-400 bg-gray-500/20';
-      }
-    };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-md font-semibold text-white flex items-center">
-            <BarChart3 className="w-4 h-4 mr-2 text-cyan-400" />
-            Test Results
-          </h4>
-          <div className="flex items-center space-x-2">
-            <span className={`text-sm font-medium ${getStatusColor(testResults.status)}`}>
-              {testResults.status.toUpperCase()}
+      {/* Test Content */}
+      <div className="desktop-panel p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+            <Code className="h-3.5 w-3.5 text-primary-400" /> Test Content
+          </h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => copyToClipboard(testContent)} className="p-1 text-text-muted hover:text-text-primary rounded transition-colors" title="Copy">
+              <Copy className="h-3 w-3" />
+            </button>
+            <span className="text-[10px] text-text-disabled">
+              {selectedPlugin && testCases[selectedPlugin] ? testCases[selectedPlugin].fileName : 'No file'}
             </span>
-            {testResults.execution_time_ms && (
-              <span className="text-xs text-gray-400">
-                {testResults.execution_time_ms.toFixed(1)}ms
-              </span>
-            )}
           </div>
         </div>
+        <textarea value={testContent} onChange={(e) => setTestContent(e.target.value)}
+          placeholder="Enter test content or select a plugin..."
+          className="w-full h-40 px-3 py-2 bg-desktop-bg border border-desktop-border rounded-desktop text-text-primary font-mono text-[11px] resize-none focus:outline-none focus:ring-1 focus:ring-primary-500" />
+      </div>
 
-        {testResults.error_message && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <div className="flex items-center space-x-2 text-red-400">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="font-medium">Error</span>
-            </div>
-            <p className="text-sm text-red-300 mt-1">{testResults.error_message}</p>
-          </div>
-        )}
-
-        {testResults.findings && testResults.findings.length > 0 ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">
-                Found {testResults.findings.length} finding(s)
+      {/* Test Results */}
+      {testResults && (
+        <div className="desktop-panel p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5 text-primary-400" /> Results
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className={`text-[11px] font-medium ${testResults.status === 'completed' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {testResults.status.toUpperCase()}
               </span>
+              {testResults.execution_time_ms && (
+                <span className="text-[10px] text-text-disabled">{testResults.execution_time_ms.toFixed(1)}ms</span>
+              )}
             </div>
+          </div>
 
-            {testResults.findings.map((finding, index) => (
-              <div key={index} className="p-4 bg-black/20 border border-white/10 rounded-lg">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(finding.severity)}`}>
-                        {finding.severity?.toUpperCase()}
-                      </span>
-                      <span className="text-white font-medium">{finding.title}</span>
+          {testResults.error_message && (
+            <div className="mb-3 p-2 bg-red-400/5 border border-red-400/10 rounded-desktop">
+              <div className="flex items-center gap-1 text-red-400 text-[11px] font-medium">
+                <AlertTriangle className="h-3 w-3" /> Error
+              </div>
+              <p className="text-[11px] text-red-300 mt-0.5">{testResults.error_message}</p>
+            </div>
+          )}
+
+          {testResults.findings?.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-text-muted">{testResults.findings.length} finding(s)</p>
+              {testResults.findings.map((finding, i) => (
+                <div key={i} className="p-2 bg-desktop-card rounded-desktop border border-desktop-border">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className={`text-[10px] px-1 py-0 rounded border ${getSeverityStyle(finding.severity)}`}>
+                      {finding.severity?.toUpperCase()}
+                    </span>
+                    <span className="text-xs text-text-primary">{finding.title}</span>
+                  </div>
+                  <p className="text-[11px] text-text-muted mb-1">{finding.description}</p>
+                  <div className="flex items-center justify-between text-[10px] text-text-disabled">
+                    <div className="flex gap-3">
+                      {finding.line_number && <span>L{finding.line_number}</span>}
+                      {finding.confidence && <span>{(finding.confidence * 100).toFixed(0)}%</span>}
                     </div>
-                    <p className="text-gray-400 text-sm">{finding.description}</p>
+                    {finding.cwe_id && <span className="text-primary-400">{finding.cwe_id}</span>}
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-gray-500 mt-3">
-                  <div className="flex items-center space-x-4">
-                    {finding.line_number && (
-                      <span>Line {finding.line_number}</span>
-                    )}
-                    {finding.confidence && (
-                      <span>Confidence: {(finding.confidence * 100).toFixed(0)}%</span>
-                    )}
-                  </div>
-                  {finding.cwe_id && (
-                    <span className="text-cyan-400">{finding.cwe_id}</span>
+                  {finding.context && (
+                    <pre className="mt-1.5 p-1.5 bg-desktop-bg rounded border-l-2 border-primary-500 text-[10px] text-text-muted font-mono overflow-x-auto">
+                      {finding.context}
+                    </pre>
                   )}
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
+              <p className="text-xs text-text-muted">No issues found</p>
+            </div>
+          )}
+        </div>
+      )}
 
-                {finding.context && (
-                  <div className="mt-2 p-2 bg-black/40 rounded border-l-2 border-cyan-500">
-                    <code className="text-xs text-gray-300">{finding.context}</code>
+      {/* Test History */}
+      <div className="desktop-panel">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-desktop-border">
+          <h3 className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-primary-400" /> History
+          </h3>
+        </div>
+        {testHistory.length > 0 ? (
+          <div className="divide-y divide-desktop-border">
+            {testHistory.map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full ${entry.status === 'completed' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                  <div>
+                    <p className="text-xs text-text-primary">{testCases[entry.plugin]?.name || entry.plugin}</p>
+                    <p className="text-[10px] text-text-disabled">{new Date(entry.timestamp).toLocaleTimeString()}</p>
                   </div>
-                )}
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-primary-400">{entry.findings} findings</p>
+                  <p className="text-[10px] text-text-disabled">{entry.executionTime?.toFixed(1)}ms</p>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-400">
-            <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-400" />
-            <p>No security issues found</p>
-            <p className="text-xs mt-1">The test content appears to be secure</p>
+          <div className="text-center py-6">
+            <TestTube className="h-5 w-5 text-text-disabled mx-auto mb-1" />
+            <p className="text-xs text-text-muted">No test history</p>
           </div>
         )}
-      </motion.div>
-    );
-  };
-
-  const renderTestHistory = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-card"
-    >
-      <h4 className="text-md font-semibold text-white mb-4 flex items-center">
-        <Clock className="w-4 h-4 mr-2 text-cyan-400" />
-        Test History
-      </h4>
-
-      {testHistory.length > 0 ? (
-        <div className="space-y-2">
-          {testHistory.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${entry.status === 'completed' ? 'bg-green-400' : 'bg-red-400'
-                  }`} />
-                <div>
-                  <div className="text-sm font-medium text-white">
-                    {testCases[entry.plugin]?.name || entry.plugin}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {new Date(entry.timestamp).toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-cyan-400">
-                  {entry.findings} findings
-                </div>
-                <div className="text-xs text-gray-400">
-                  {entry.executionTime?.toFixed(1)}ms
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-400">
-          <TestTube className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p>No test history</p>
-          <p className="text-xs mt-1">Run some plugin tests to see history</p>
-        </div>
-      )}
-    </motion.div>
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Plugin Testing</h2>
-          <p className="text-gray-400">
-            Test individual plugins with custom content and analyze results
-          </p>
-        </div>
       </div>
-
-      {renderPluginSelector()}
-      {renderTestInput()}
-      {renderTestResults()}
-      {renderTestHistory()}
     </div>
   );
 };

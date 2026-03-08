@@ -1,215 +1,110 @@
 import React from 'react'
-import { motion } from 'framer-motion'
-import { 
-  Upload, 
-  Search, 
-  Shield, 
-  Bug, 
-  Cpu, 
-  CheckCircle, 
-  Loader2 
+import {
+  Upload,
+  Search,
+  Shield,
+  Bug,
+  Cpu,
+  CheckCircle,
+  Loader2
 } from 'lucide-react'
 
 const ScanProgress = ({ progress }) => {
   const stages = [
-    {
-      id: 'uploading',
-      label: 'Uploading Files',
-      icon: Upload,
-      description: 'Securely uploading your files...'
-    },
-    {
-      id: 'scanning',
-      label: 'Security Analysis',
-      icon: Search,
-      description: 'Analyzing code for vulnerabilities...'
-    },
-    {
-      id: 'secrets',
-      label: 'Secret Detection',
-      icon: Shield,
-      description: 'Scanning for hardcoded secrets...'
-    },
-    {
-      id: 'dependencies',
-      label: 'Dependency Check',
-      icon: Bug,
-      description: 'Checking for vulnerable packages...'
-    },
-    {
-      id: 'ai_patterns',
-      label: 'AI Pattern Analysis',
-      icon: Cpu,
-      description: 'Detecting AI-generated anti-patterns...'
-    },
-    {
-      id: 'complete',
-      label: 'Complete',
-      icon: CheckCircle,
-      description: 'Scan completed successfully!'
-    }
+    { id: 'uploading', label: 'Uploading Files', icon: Upload, description: 'Securely uploading your files...' },
+    { id: 'scanning', label: 'Security Analysis', icon: Search, description: 'Analyzing code for vulnerabilities...' },
+    { id: 'secrets', label: 'Secret Detection', icon: Shield, description: 'Scanning for hardcoded secrets...' },
+    { id: 'dependencies', label: 'Dependency Check', icon: Bug, description: 'Checking for vulnerable packages...' },
+    { id: 'ai_patterns', label: 'AI Pattern Analysis', icon: Cpu, description: 'Detecting AI-generated anti-patterns...' },
+    { id: 'complete', label: 'Complete', icon: CheckCircle, description: 'Scan completed successfully!' }
   ]
 
-  const getCurrentStageIndex = () => {
-    return stages.findIndex(stage => stage.id === progress.stage)
-  }
-
-  const currentStageIndex = getCurrentStageIndex()
+  const currentStageIndex = stages.findIndex(stage => stage.id === progress.stage)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card"
-    >
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-2">
-          Scanning in Progress
-        </h3>
-        <p className="text-gray-400">
+    <div className="desktop-panel p-4">
+      <div className="mb-4">
+        <h3 className="text-xs font-semibold text-text-primary mb-0.5">Scanning in Progress</h3>
+        <p className="text-[11px] text-text-muted">
           {stages[currentStageIndex]?.description || 'Processing...'}
         </p>
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-300">
-            {stages[currentStageIndex]?.label || 'Processing'}
-          </span>
-          <span className="text-sm text-gray-400">
-            {Math.round(progress.progress || 0)}%
-          </span>
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-1 text-[11px]">
+          <span className="text-text-secondary">{stages[currentStageIndex]?.label || 'Processing'}</span>
+          <span className="text-text-primary font-medium">{Math.round(progress.progress || 0)}%</span>
         </div>
-        
-        <div className="progress-bar">
-          <motion.div
-            className="progress-fill"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress.progress || 0}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+        <div className="w-full bg-desktop-border rounded-full h-1.5">
+          <div
+            className="bg-primary-600 h-1.5 rounded-full transition-all duration-500"
+            style={{ width: `${progress.progress || 0}%` }}
           />
         </div>
       </div>
 
       {/* Stage Indicators */}
-      <div className="space-y-4">
+      <div className="space-y-1">
         {stages.map((stage, index) => {
           const Icon = stage.icon
           const isActive = index === currentStageIndex
           const isCompleted = index < currentStageIndex
-          const isPending = index > currentStageIndex
 
           return (
-            <motion.div
+            <div
               key={stage.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
               className={`
-                flex items-center space-x-4 p-3 rounded-lg transition-all duration-300
-                ${isActive 
-                  ? 'bg-primary-500 bg-opacity-10 border border-primary-500 border-opacity-20' 
-                  : isCompleted
-                    ? 'bg-green-500 bg-opacity-10 border border-green-500 border-opacity-20'
-                    : 'bg-gray-800 border border-gray-700'
-                }
+                flex items-center gap-3 px-2.5 py-1.5 rounded-desktop transition-colors
+                ${isActive ? 'bg-primary-500/5 border border-primary-500/15' :
+                  isCompleted ? 'bg-emerald-400/5 border border-emerald-400/10' :
+                    'border border-transparent'}
               `}
             >
               <div className={`
-                flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
-                ${isActive
-                  ? 'bg-primary-500 bg-opacity-20'
-                  : isCompleted
-                    ? 'bg-green-500 bg-opacity-20'
-                    : 'bg-gray-700'
-                }
+                flex items-center justify-center w-6 h-6 rounded-full
+                ${isActive ? 'bg-primary-500/10' : isCompleted ? 'bg-emerald-400/10' : 'bg-desktop-card'}
               `}>
                 {isActive ? (
-                  <Loader2 className="h-5 w-5 text-primary-400 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 text-primary-400 animate-spin" />
                 ) : (
-                  <Icon className={`
-                    h-5 w-5 transition-colors duration-300
-                    ${isCompleted 
-                      ? 'text-green-400' 
-                      : isActive 
-                        ? 'text-primary-400' 
-                        : 'text-gray-400'
-                    }
-                  `} />
+                  <Icon className={`h-3.5 w-3.5 ${isCompleted ? 'text-emerald-400' : 'text-text-disabled'}`} />
                 )}
               </div>
 
               <div className="flex-1">
-                <h4 className={`
-                  font-medium transition-colors duration-300
-                  ${isActive 
-                    ? 'text-primary-400' 
-                    : isCompleted 
-                      ? 'text-green-400' 
-                      : 'text-gray-400'
-                  }
-                `}>
+                <h4 className={`text-xs font-medium ${isActive ? 'text-primary-400' : isCompleted ? 'text-emerald-400' : 'text-text-disabled'
+                  }`}>
                   {stage.label}
                 </h4>
-                
                 {isActive && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-gray-400 mt-1"
-                  >
-                    {stage.description}
-                  </motion.p>
+                  <p className="text-[10px] text-text-muted mt-0.5">{stage.description}</p>
                 )}
               </div>
 
-              {isCompleted && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                >
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                </motion.div>
-              )}
-            </motion.div>
+              {isCompleted && <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />}
+            </div>
           )
         })}
       </div>
 
       {/* Estimated Time */}
-      <div className="mt-6 pt-6 border-t border-gray-700">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">
-            Estimated time remaining
-          </span>
-          <span className="text-gray-300 font-medium">
-            {currentStageIndex < stages.length - 1 ? '~2 minutes' : 'Almost done!'}
-          </span>
-        </div>
+      <div className="mt-3 pt-3 border-t border-desktop-border flex items-center justify-between text-[11px]">
+        <span className="text-text-disabled">Estimated time remaining</span>
+        <span className="text-text-secondary">
+          {currentStageIndex < stages.length - 1 ? '~2 minutes' : 'Almost done!'}
+        </span>
       </div>
 
-      {/* Security Notice */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-4 p-3 bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-20 rounded-lg"
-      >
-        <div className="flex items-start space-x-2">
-          <Shield className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-xs text-blue-400 font-medium">
-              Privacy Protected
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              All analysis happens locally. Your code never leaves your environment.
-            </p>
-          </div>
+      {/* Privacy Notice */}
+      <div className="mt-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded-desktop flex items-start gap-1.5">
+        <Shield className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-[10px] text-blue-400 font-medium">Privacy Protected</p>
+          <p className="text-[10px] text-text-disabled">All analysis happens locally.</p>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 
