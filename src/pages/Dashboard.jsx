@@ -14,8 +14,28 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import GlassCard from '../components/ui/GlassCard'
 import Button from '../components/ui/Button'
-import StatsCard from '../components/dashboard/StatsCard'
 import { CircularProgress } from '../components/ui/ProgressIndicator'
+
+const StatsCard = ({ title, value, change, changeType, icon: Icon, color, onClick }) => (
+  <GlassCard className={`p-5 ${onClick ? 'cursor-pointer hover:bg-white/[0.04]' : ''}`} onClick={onClick}>
+    <div className="flex items-start justify-between mb-3">
+      <h3 className="text-sm font-medium text-text-secondary">{title}</h3>
+      <div className={`p-2 rounded-lg bg-${color}-500/10`}>
+        <Icon className={`w-5 h-5 text-${color}-400`} />
+      </div>
+    </div>
+    <div className="flex items-baseline gap-2 mt-2">
+      <span className="text-2xl font-bold text-text-primary">{value}</span>
+    </div>
+    {change && (
+      <div className="mt-3 text-xs flex items-center gap-1.5">
+        <span className={changeType === 'positive' ? 'text-emerald-400' : 'text-red-400'}>
+          {change}
+        </span>
+      </div>
+    )}
+  </GlassCard>
+)
 import ScheduleScanModal from '../components/ScheduleScanModal'
 
 const Dashboard = () => {
