@@ -29,7 +29,7 @@ import ExecutiveSummary from '../components/ExecutiveSummary'
 import CVSSScore from '../components/CVSSScore'
 import apiService from '../services/api'
 
-const { scan: scanService } = apiService
+const { scan: scanService, report: reportService } = apiService
 
 const Report = () => {
   const { scanId } = useParams()
@@ -134,7 +134,7 @@ const Report = () => {
 
     setIsGeneratingPDF(true)
     try {
-      const response = await scanService.generatePDFReport(reportData.scan_id)
+      const response = await reportService.generatePDFReport(reportData.scan_id)
       const link = document.createElement('a')
       link.href = response.download_url
       link.download = `byteguardx-report-${reportData.scan_id}.pdf`
