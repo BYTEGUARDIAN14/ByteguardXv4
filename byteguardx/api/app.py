@@ -27,6 +27,7 @@ from ..security.webauthn_manager import webauthn_manager
 from ..security.crypto_manager import crypto_manager
 from ..security.zero_trust_network import zero_trust_network
 from ..security.behavioral_biometrics import behavioral_biometrics
+from ..security.two_factor_auth import two_factor_auth
 from ..security.quantum_crypto import quantum_crypto
 from ..security.ai_security_analytics import ai_security_analytics
 from ..security.soar_engine import soar_engine
@@ -786,18 +787,6 @@ def create_app(config=None):
          max_age=3600)
     jwt = JWTManager(app)
 
-    # Add explicit CORS preflight handler for auth endpoints
-    @app.before_request
-    def handle_preflight():
-        """Handle CORS preflight requests for auth endpoints"""
-        if request.method == "OPTIONS":
-            response = jsonify({'status': 'ok'})
-            response.headers.add("Access-Control-Allow-Origin", request.headers.get('Origin', 'http://localhost:3000'))
-            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With")
-            response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            return response
-
     # Advanced security middleware
     @app.before_request
     def advanced_security_middleware():
@@ -999,10 +988,6 @@ def create_app(config=None):
             # Only set if not already set (preserves CORS headers)
             if header not in response.headers:
                 response.headers[header] = value
-
-        # Ensure CORS credentials header is properly set for auth endpoints
-        if request.path.startswith('/api/auth/') and 'Access-Control-Allow-Credentials' not in response.headers:
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
 
         return response
 
@@ -2303,6 +2288,90 @@ startxref
         except Exception as e:
             logger.error(f"CSRF token generation error: {e}")
             return jsonify({'error': 'Failed to generate CSRF token'}), 500
+
+    @app.route('/api/auth/2fa/status', methods=['GET'])
+    @jwt_required()
+    def get_2fa_status():
+        """Get 2FA status for current user"""
+        try:
+            user_id = get_jwt_identity()
+            is_enabled = two_factor_auth.is_2fa_enabled(user_id)
+
+            return jsonify({
+                'enabled': is_enabled,
+                'user_id': user_id
+            })
+
+        except Exception as e:
+            logger.error(f"2FA status check failed: {e}")
+            return jsonify({'error': '2FA status check failed'}), 500
+
+    @app.route('/api/auth/2fa/setup', methods=['POST'])
+    @jwt_required()
+    def setup_2fa():
+        """Setup 2FA for user"""
+        try:
+            user_id = get_jwt_identity()
+            
+            # Using SQLAlchemy session
+            session = db.session
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Setup TOTP
+            setup_data = two_factor_auth.setup_totp(user_id, user.email)
+            
+            return jsonify({
+                'message': '2FA setup initiated',
+                'qr_code': setup_data['qr_code'].decode('latin-1'),  # Convert bytes to string
+                'manual_entry_key': setup_data['manual_entry_key'],
+                'backup_codes': setup_data['backup_codes']
+            })
+                
+        except Exception as e:
+            logger.error(f"2FA setup failed: {e}")
+            return jsonify({'error': '2FA setup failed'}), 500
+    
+    @app.route('/api/auth/2fa/enable', methods=['POST'])
+    @jwt_required()
+    def enable_2fa():
+        """Enable 2FA after verification"""
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            totp_token = data.get('totp_token', '')
+            if not totp_token:
+                return jsonify({'error': 'TOTP token required'}), 400
+            
+            user_id = get_jwt_identity()
+            
+            if two_factor_auth.enable_totp(user_id, totp_token):
+                return jsonify({'message': '2FA enabled successfully'})
+            else:
+                return jsonify({'error': 'Invalid TOTP token'}), 400
+                
+        except Exception as e:
+            logger.error(f"2FA enable failed: {e}")
+            return jsonify({'error': '2FA enable failed'}), 500
+    
+    @app.route('/api/auth/2fa/disable', methods=['POST'])
+    @jwt_required()
+    def disable_2fa():
+        """Disable 2FA"""
+        try:
+            user_id = get_jwt_identity()
+            
+            if two_factor_auth.disable_2fa(user_id):
+                return jsonify({'message': '2FA disabled successfully'})
+            else:
+                return jsonify({'error': 'Failed to disable 2FA'}), 500
+                
+        except Exception as e:
+            logger.error(f"2FA disable failed: {e}")
+            return jsonify({'error': '2FA disable failed'}), 500
 
     @app.route('/api/auth/refresh', methods=['POST'])
     def refresh_token():
