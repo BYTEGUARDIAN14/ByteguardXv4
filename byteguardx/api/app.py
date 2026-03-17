@@ -429,8 +429,13 @@ def create_app(config=None):
                     enable_plugins=True
                 )
                 
-                # Execute scan
-                findings = scanner.scan_content(scan_context)
+                # Execute scan using safe asyncio (avoid event loop conflicts)
+                import asyncio
+                scan_loop = asyncio.new_event_loop()
+                try:
+                    findings = scan_loop.run_until_complete(scanner.scan_content_async(scan_context))
+                finally:
+                    scan_loop.close()
                 
                 # Cleanup
                 try:
@@ -479,6 +484,12 @@ def create_app(config=None):
                              'line_number': f.line_number
                         })
                 
+                # Add top-level severity counts for frontend (EnhancedScanInterface expects summary.critical, etc.)
+                summary['critical'] = sum(s['by_severity']['critical'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+                summary['high'] = sum(s['by_severity']['high'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+                summary['medium'] = sum(s['by_severity']['medium'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+                summary['low'] = sum(s['by_severity']['low'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+                
                 result = {
                     'status': 'success',
                     'scan_id': scan_id,
@@ -511,6 +522,9 @@ def create_app(config=None):
             if not content:
                 return jsonify({'error': 'No content to scan'}), 400
 
+            # Generate scan ID for JSON path
+            scan_id = str(uuid.uuid4())
+
             # Simple mock scan for JSON input
             findings = []
             if 'password' in content.lower():
@@ -525,10 +539,31 @@ def create_app(config=None):
                     'scanner_name': 'basic_scanner'
                 })
 
-                # Store result
-                app.config['SCAN_RESULTS'][scan_id] = result
-                
-                return jsonify(result)
+            result = {
+                'status': 'success',
+                'scan_id': scan_id,
+                'timestamp': datetime.now().isoformat(),
+                'total_files': 1,
+                'total_findings': len(findings),
+                'total_fixes': 0,
+                'findings': findings,
+                'fixes': [],
+                'summary': {
+                    'secrets': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                    'dependencies': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                    'ai_patterns': {'total': 0, 'by_severity': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}},
+                    'critical': 0, 'high': len([f for f in findings if f.get('severity') == 'high']),
+                    'medium': 0, 'low': 0
+                },
+                'scan_info': {
+                    'file_path': file_path,
+                    'total_findings': len(findings)
+                }
+            }
+
+            # Store result
+            app.config['SCAN_RESULTS'][scan_id] = result
+            return jsonify(result)
 
         except Exception as e:
             logger.error(f"Scan file error: {e}")
@@ -586,7 +621,14 @@ def create_app(config=None):
                         file_size=os.path.getsize(f_path),
                         scan_mode=ScanMode.COMPREHENSIVE
                     )
-                    return scanner.scan_content(ctx)
+                    
+                    # Safe asyncio execution for background worker
+                    import asyncio
+                    scan_loop = asyncio.new_event_loop()
+                    try:
+                        return scan_loop.run_until_complete(scanner.scan_content_async(ctx))
+                    finally:
+                        scan_loop.close()
                 except Exception as ex:
                     logger.error(f"Worker error scanning {f_path}: {ex}")
                     return []
@@ -647,6 +689,12 @@ def create_app(config=None):
                             'line_number': f.line_number
                     })
             
+            # Add top-level severity counts for frontend (EnhancedScanInterface expects summary.critical, etc.)
+            summary['critical'] = sum(s['by_severity']['critical'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+            summary['high'] = sum(s['by_severity']['high'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+            summary['medium'] = sum(s['by_severity']['medium'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+            summary['low'] = sum(s['by_severity']['low'] for s in [summary['secrets'], summary['dependencies'], summary['ai_patterns']])
+            
             result = {
                 'status': 'success',
                 'scan_id': scan_id,
@@ -689,7 +737,7 @@ def create_app(config=None):
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', default_jwt_key)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)  # Very short-lived tokens
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(hours=24)  # Shorter refresh window
-    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size (strict)
+    app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size (matches frontend limit)
 
     # MAXIMUM session security
     app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only

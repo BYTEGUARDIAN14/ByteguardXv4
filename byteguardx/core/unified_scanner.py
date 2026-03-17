@@ -676,7 +676,7 @@ class UnifiedScanner:
         return weights.get(finding_type, 0.4)
 
     def _finding_to_dict(self, finding: EnhancedFinding) -> Dict[str, Any]:
-        """Convert enhanced finding to dict for ML processing"""
+        """Convert enhanced finding to dict for ML processing and API response"""
         return {
             'type': finding.type,
             'subtype': finding.subtype,
@@ -686,7 +686,13 @@ class UnifiedScanner:
             'line_number': finding.line_number,
             'context': finding.context,
             'description': finding.description,
-            'scanner_source': finding.scanner_source
+            'scanner_source': finding.scanner_source,
+            'title': finding.description,
+            'scanner_name': finding.scanner_source,
+            'verification_status': finding.verification_status.value if hasattr(finding.verification_status, 'value') else str(finding.verification_status),
+            'false_positive_likelihood': finding.false_positive_likelihood,
+            'recommendation': finding.recommendation,
+            'fix_suggestion': finding.fix_suggestion,
         }
 
     def _group_findings_by_location(self, findings: List[EnhancedFinding]) -> Dict[str, List[EnhancedFinding]]:
